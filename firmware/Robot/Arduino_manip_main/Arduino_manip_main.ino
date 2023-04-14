@@ -1,6 +1,6 @@
 #include "SmoothServoDriver.h"
 #include <Wire.h>
-#include "LSM6.h"
+#include <LSM6.h>
 
 LSM6 imu;
 long gyromax = 15000;
