@@ -1,0 +1,7 @@
+SmoothServoDriver	KEYWORD1
+PCA9685SmoothServo	KEYWORD1
+attach	KEYWORD2
+toPosition	KEYWORD2
+tick	KEYWORD2
+setV	KEYWORD2
+setAccel	KEYWORD2
