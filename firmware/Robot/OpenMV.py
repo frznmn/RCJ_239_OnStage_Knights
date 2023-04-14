@@ -29,7 +29,7 @@ sensor.set_auto_exposure(False, \
 
 tag_families = 0
 tag_families |= image.TAG16H5 # comment out to disable this family
-minToTag = 110
+minToTag = 120
 #tag_families |= image.TAG25H7 # comment out to disable this family
 #tag_families |= image.TAG25H9 # comment out to disable this family
 #tag_families |= image.TAG36H10 # comment out to disable this family
