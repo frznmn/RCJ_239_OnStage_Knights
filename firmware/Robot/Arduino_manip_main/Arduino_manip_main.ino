@@ -19,7 +19,7 @@ void printDetail(uint8_t type, int value);
 int MIN_PULSES[5] = { 508, 464, 464, 411, 411 };  //These are the minimum and maximum wavelength values which serve MG 995.
 int MAX_PULSES[5] = { 2524, 2597, 2597, 2636, 2636 };
 int zeros[5] = { 80, 88, 80, 70, 60 };
-float ks[5] = { -8.0 / 9.0, -8.0 / 9.0, 85.0 / 90.0, -54.0 / 90.0, 54.0 / 90.0 };
+float ks[5] = { -8.0 / 9.0, -8.0 / 9.0, 85.0 / 90.0, -54.0 / 90.0, -54.0 / 90.0 };
 int rnum = 1;
 
 int ticks(bool a0 = true, bool a1 = true, bool a2 = true, bool a3 = true, bool a4 = true) {
@@ -55,6 +55,45 @@ void toPositions(int a0 = 1000, int a1 = 1000, int a2 = 1000, int a3 = 1000, int
       t = ticks(a[0], a[1], a[2], a[3], a[4]);
     }
   }
+}
+
+void udarVpravo() {
+  long gyrox, gyroy, gyroz, gyroold;
+  toPositions(0, -90, 0, 90, 0, true);
+  toPositions(0, -90, 45, 90, 0, true);
+  imu.read();
+  gyrox = imu.g.x;
+  gyroy = imu.g.y;
+  gyroz = imu.g.z;
+  gyrox = abs(gyrox);
+  gyroy = abs(gyroy);
+  gyroz = abs(gyroz);
+  gyroold = gyrox + gyroy + gyroz;
+  toPositions(-20, -90, 45, 0, 90, false);
+  uint32_t myTimer = millis();
+  myDFPlayer.play(random(1, 4));
+  while (true) {
+    imu.read();
+    gyrox = imu.g.x;
+    gyroy = imu.g.y;
+    gyroz = imu.g.z;
+    gyrox = abs(gyrox);
+    gyroy = abs(gyroy);
+    gyroz = abs(gyroz);
+    Serial.print(abs(gyrox + gyroy + gyroz));
+    Serial.print(" ");
+    Serial.println(abs(gyroold));
+    if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax and millis() - myTimer > 500) {
+      Serial.println(abs(gyrox + gyroy + gyroz - gyroold));
+      toPositions(servo0.getPosition() + 10, -90, 0, servo3.getPosition() + 10, true);
+      break;
+    }
+    gyroold = gyrox + gyroy + gyroz;
+    int nServs = ticks();
+    if (nServs == 31) break;
+  }
+  toPositions(0, -90, 45, 90, 0, true);
+  toPositions(0, -90, 0, 90, 0, true);
 }
 
 void udarVpered() {
@@ -181,14 +220,14 @@ void setup() {
       delay(0);  // Code to compatible with ESP8266 watch dog.
     }
   }
-  myDFPlayer.volume(30);  //Set volume value. From 0 to 30
+  myDFPlayer.volume(0);  //Set volume value. From 0 to 30
   servo0.attach(0, MIN_PULSES[0], MAX_PULSES[0], zeros[0], ks[0], 0);
   servo1.attach(1, MIN_PULSES[1], MAX_PULSES[1], zeros[1], ks[1], -90);
   servo2.attach(2, MIN_PULSES[2], MAX_PULSES[2], zeros[2], ks[2], 0);
   servo3.attach(3, MIN_PULSES[3], MAX_PULSES[3], zeros[3], ks[3], 90);
   servo4.attach(4, MIN_PULSES[4], MAX_PULSES[4], zeros[4], ks[4], 0);
   delay(2500);
-  delay(1000000);
+  udarVpravo();
   if (rnum == 0) {
     while (fromArduino() != 2)
       ;
