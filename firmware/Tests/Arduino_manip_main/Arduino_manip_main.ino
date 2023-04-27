@@ -3,7 +3,7 @@
 #include "LSM6.h"
 
 LSM6 imu;
-long gyromax = 15000;
+long gyromax = 17000;
 PCA9685SmoothServo servo0;
 PCA9685SmoothServo servo1;
 PCA9685SmoothServo servo2;
@@ -86,7 +86,7 @@ void udarVlevo() {
     Serial.println(abs(gyroold));
     if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax and millis() - myTimer > 500) {
       Serial.println(abs(gyrox + gyroy + gyroz - gyroold));
-      toPositions(servo0.getPosition() + 10, -90, 0, servo3.getPosition() + 10, true);
+      toPositions(servo0.getPosition() + 10, -90, -45, servo3.getPosition() + 10, servo4.getPosition() + 10, true);
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
@@ -122,12 +122,12 @@ void udarVpravo() {
     gyrox = abs(gyrox);
     gyroy = abs(gyroy);
     gyroz = abs(gyroz);
-    Serial.print(abs(gyrox + gyroy + gyroz));
+    Serial.print(gyrox + gyroy + gyroz);
     Serial.print(" ");
     Serial.println(abs(gyroold));
     if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax and millis() - myTimer > 500) {
       Serial.println(abs(gyrox + gyroy + gyroz - gyroold));
-      toPositions(servo0.getPosition() + 10, -90, 0, servo3.getPosition() + 10, true);
+      toPositions(servo0.getPosition() + 10, -90, 45, servo3.getPosition() + 10, servo4.getPosition() + 10, true);
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
@@ -166,7 +166,7 @@ void udarVpered() {
     Serial.println(abs(gyroold));
     if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax and millis() - myTimer > 500) {
       Serial.println(abs(gyrox + gyroy + gyroz - gyroold));
-      toPositions(servo0.getPosition() + 10, -90, 0, servo3.getPosition() + 10, true);
+      toPositions(servo0.getPosition() + 10, -90, 0, servo3.getPosition() + 10, 0, true);
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
@@ -215,7 +215,7 @@ void blokVpered() {
 
 void blokVpravo() {
   long gyrox, gyroy, gyroz, gyroold;
-  toPositions(0, -90, 0, 90, 0, true);
+  toPositions(  0, -90, 0, 90, 0, true);
   imu.read();
   gyrox = imu.g.x;
   gyroy = imu.g.y;
@@ -346,7 +346,7 @@ void setup() {
   fromArduino();
   while(fromArduino() != 1);
   udarVpravo();
-  UdarVpered();
+  udarVpered();
   udarVlevo();
   blokVpravo();
   blokVpered();

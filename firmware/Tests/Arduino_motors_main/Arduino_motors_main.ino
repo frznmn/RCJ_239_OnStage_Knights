@@ -16,7 +16,7 @@
 
 
 //variables
-float kpmglobal = 10, kdmglobal = 1, kimglobal = 0.001, kpsglobal = 5, kdsglobal = 1, kisglobal = 0.002, kvglobal = 0.1;
+float kpmglobal = 10, kdmglobal = 1, kimglobal = 0.001, kpsglobal = 5, kdsglobal = 1, kisglobal = 0.007, kvglobal = 0.1;
 long encoders[2] = { 0, 0 }, Astop = 0, Bstop = 0;
 int rnum = 1;
 
@@ -105,7 +105,6 @@ void forward(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kd
   float u;
   int v;
   float kp, kd, ki;
-  unsigned long begin = millis();
   while (abs(encA + encB) < abs(distance) * 2) {
     encA = encoders[ENCODERA];
     encB = encoders[ENCODERB];
@@ -147,18 +146,19 @@ void forward(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kd
 bool forwardUart(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmglobal, float _ki = kimglobal, float kv = kvglobal, int space = 95) {
   while (Serial2.available()) Serial2.read();
   fromCamera();
-  long zeros[2] = { encoders[ENCODERA], encoders[ENCODERB] }, ei = 0;
   int a = -1;
   long x = 0;
   int znak = 1;
   bool tag1 = false;
+  long zeros[2] = { encoders[ENCODERA], encoders[ENCODERB] }, ei = 0;
+  int va = 0;
+  int vb = 0;
   encoders[ENCODERA] = encoders[ENCODERB] = 0;
   vmax = abs(vmax);
   int encA = encoders[ENCODERA], encB = encoders[ENCODERB], epold = encB - encA, ep = 0, ed = 0;
   float u;
   int v;
   float kp, kd, ki;
-  unsigned long begin = millis();
   while (abs(encA + encB) < abs(distance) * 2) {
     encA = encoders[ENCODERA];
     encB = encoders[ENCODERB];
@@ -168,16 +168,21 @@ bool forwardUart(int distance, int vmax = 100, float _kp = kpmglobal, float _kd 
       v = abs(distance) - abs(encA + encB) / 2;
     }
     v = float(v) * kv;
-    v += 10 + 5 * (abs(encA + encB) < abs(distance));
-    v = min(vmax, v);
+    v += 15;
+    v = max(15, v);
     kp = float(_kp * v) / 100.0;
     ep = encB - encA;
     //ed = epold - ep;
-    //ei += ep;
-    u = float(ep) * kp + ed * kd + ei * ki;
+    ei += ep;
+    u = float(ep) * kp + ed * kd + float(ei) * ki;
     epold = ep;
-    motorA.rotate(v * sgn(distance) + u);
-    motorB.rotate(v * sgn(distance) - u);
+    va = v * sgn(distance) + u;
+    va = max(abs(va), 15) * sgn(va);
+    vb = v * sgn(distance) - u;
+    vb = max(abs(vb), 15) * sgn(vb);
+    motorA.rotate(va);
+    motorB.rotate(vb);
+    Serial.println();
     if (Serial2.available()) {
       a = Serial2.read();
       if (a == space) {
@@ -204,14 +209,16 @@ bool forwardUart(int distance, int vmax = 100, float _kp = kpmglobal, float _kd 
 
 //synchronization of motors to turn
 void turn(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmglobal, float _ki = kimglobal, float kv = kvglobal) {
-  distance = float(distance) * 415.0 / 90.0;
+  distance = float(distance) * 450.0 / 90.0;
   long zeros[2] = { encoders[ENCODERA], encoders[ENCODERB] }, ei = 0;
+  int va = 0;
+  int vb = 0;
   encoders[ENCODERA] = encoders[ENCODERB] = 0;
   vmax = abs(vmax);
-  int encA = encoders[ENCODERA], encB = encoders[ENCODERB], epold = encB - encA, ep = 0, ed = 0;
+  int encA = encoders[ENCODERA], encB = encoders[ENCODERB], epold = -encB - encA, ep = 0, ed = 0;
   float u;
   int v;
-  float kp, kd, ki;
+  float kp, kd, ki = _ki;
   while (abs(encA - encB) < abs(distance) * 2) {
     encA = encoders[ENCODERA];
     encB = encoders[ENCODERB];
@@ -222,14 +229,26 @@ void turn(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmgl
     }
     v = float(v) * kv;
     v += 15;
-    v = min(vmax, v);
+    v = max(15, v);
     kp = float(_kp * v) / 100.0;
     ep = -encB - encA;
-    u = float(ep) * kp + ed * kd + ei * ki;
+    //ed = epold - ep;
+    ei += ep;
+    u = float(ep) * kp + ed * kd + float(ei) * _ki;
     epold = ep;
-    motorA.rotate(v * sgn(distance) + u);
-    motorB.rotate(v * -sgn(distance) + u);
-    Serial.println();
+    va = v * sgn(distance) + u;
+    va = max(abs(va), 15) * sgn(va);
+    vb = v * sgn(distance) - u;
+    vb = max(abs(vb), 15) * sgn(vb);
+    motorA.rotate(va);
+    motorB.rotate(-vb);
+    Serial.print(encoders[ENCODERA]);
+    Serial.print(" ");
+    Serial.print(encoders[ENCODERB]);
+    Serial.print(" ");
+    Serial.print(v);
+    Serial.print(" ");
+    Serial.println(u);
   }
   motorA.stay();
   motorB.stay();
