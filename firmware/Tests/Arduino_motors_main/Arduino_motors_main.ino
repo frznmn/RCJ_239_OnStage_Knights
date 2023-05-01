@@ -16,7 +16,7 @@
 
 
 //variables
-float kpmglobal = 10, kdmglobal = 1, kimglobal = 0.001, kpsglobal = 5, kdsglobal = 1, kisglobal = 0.007, kvglobal = 0.1;
+float kpmglobal = 4, kdmglobal = 1, kimglobal = 0.001, kpsglobal = 5, kdsglobal = 1, kisglobal = 0.007, kvglobal = 0.1;
 long encoders[2] = { 0, 0 }, Astop = 0, Bstop = 0;
 int rnum = 1;
 
@@ -116,6 +116,7 @@ void forward(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kd
     v = float(v) * kv;
     v += 15;
     v = max(15, v);
+    v = min(100, v);
     kp = float(_kp * v) / 100.0;
     ep = encB - encA;
     //ed = epold - ep;
@@ -143,70 +144,6 @@ void forward(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kd
   delay(250);
 }
 
-bool forwardUart(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmglobal, float _ki = kimglobal, float kv = kvglobal, int space = 95) {
-  while (Serial2.available()) Serial2.read();
-  fromCamera();
-  int a = -1;
-  long x = 0;
-  int znak = 1;
-  bool tag1 = false;
-  long zeros[2] = { encoders[ENCODERA], encoders[ENCODERB] }, ei = 0;
-  int va = 0;
-  int vb = 0;
-  encoders[ENCODERA] = encoders[ENCODERB] = 0;
-  vmax = abs(vmax);
-  int encA = encoders[ENCODERA], encB = encoders[ENCODERB], epold = encB - encA, ep = 0, ed = 0;
-  float u;
-  int v;
-  float kp, kd, ki;
-  while (abs(encA + encB) < abs(distance) * 2) {
-    encA = encoders[ENCODERA];
-    encB = encoders[ENCODERB];
-    if (abs(encA + encB) < abs(distance)) {
-      v = abs(encA + encB) / 2;
-    } else {
-      v = abs(distance) - abs(encA + encB) / 2;
-    }
-    v = float(v) * kv;
-    v += 15;
-    v = max(15, v);
-    kp = float(_kp * v) / 100.0;
-    ep = encB - encA;
-    //ed = epold - ep;
-    ei += ep;
-    u = float(ep) * kp + ed * kd + float(ei) * ki;
-    epold = ep;
-    va = v * sgn(distance) + u;
-    va = max(abs(va), 15) * sgn(va);
-    vb = v * sgn(distance) - u;
-    vb = max(abs(vb), 15) * sgn(vb);
-    motorA.rotate(va);
-    motorB.rotate(vb);
-    Serial.println();
-    if (Serial2.available()) {
-      a = Serial2.read();
-      if (a == space) {
-        a = -1;
-        znak = 1;
-        tag1 = max(tag1, x % 2);
-        x = 0;
-      } else {
-        if (a == 45) znak = -1;
-        else {
-          x *= 10;
-          x += a - 48;
-        }
-      }
-    }
-  }
-  motorA.stay();
-  motorB.stay();
-  encoders[ENCODERA] += zeros[ENCODERA];
-  encoders[ENCODERB] += zeros[ENCODERB];
-  delay(250);
-  return tag1;
-}
-
 //synchronization of motors to turn
 void turn(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmglobal, float _ki = kimglobal, float kv = kvglobal) {
   distance = float(distance) * 450.0 / 90.0;
@@ -230,6 +167,7 @@ void turn(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmgl
     v = float(v) * kv;
     v += 15;
     v = max(15, v);
+    v = min(100, v);
     kp = float(_kp * v) / 100.0;
     ep = -encB - encA;
     //ed = epold - ep;
