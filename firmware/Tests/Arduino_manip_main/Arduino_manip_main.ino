@@ -86,7 +86,7 @@ void udarVlevo() {
     Serial.println(abs(gyroold));
     if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax and millis() - myTimer > 500) {
       Serial.println(abs(gyrox + gyroy + gyroz - gyroold));
-      toPositions(servo0.getPosition() + 10, -90, -45, servo3.getPosition() + 10, servo4.getPosition() + 10, true);
+      toPositions(-45, -90, -45, servo3.getPosition() + 10, servo4.getPosition() - 10, true);
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
@@ -127,7 +127,7 @@ void udarVpravo() {
     Serial.println(abs(gyroold));
     if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax and millis() - myTimer > 500) {
       Serial.println(abs(gyrox + gyroy + gyroz - gyroold));
-      toPositions(servo0.getPosition() + 10, -90, 45, servo3.getPosition() + 10, servo4.getPosition() + 10, true);
+      toPositions(-45, -90, 45, servo3.getPosition() + 10, servo4.getPosition() - 10, true);
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
