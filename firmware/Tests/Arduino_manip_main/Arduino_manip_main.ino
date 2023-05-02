@@ -343,14 +343,6 @@ void setup() {
   servo3.attach(3, MIN_PULSES[3], MAX_PULSES[3], zeros[3], ks[3], 90);
   servo4.attach(4, MIN_PULSES[4], MAX_PULSES[4], zeros[4], ks[4], 0);
   delay(2500);
-  fromArduino();
-  while(fromArduino() != 1);
-  udarVpravo();
-  udarVpered();
-  udarVlevo();
-  blokVpravo();
-  blokVpered();
-  blokVlevo();
 }
 
 void loop() {
