@@ -116,7 +116,7 @@ void forward(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kd
     v = float(v) * kv;
     v += 15;
     v = max(15, v);
-    v = min(100, v);
+    v = min(vmax, v);
     kp = float(_kp * v) / 100.0;
     ep = encB - encA;
     //ed = epold - ep;
@@ -167,7 +167,7 @@ void turn(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmgl
     v = float(v) * kv;
     v += 15;
     v = max(15, v);
-    v = min(100, v);
+    v = min(vmax, v);
     kp = float(_kp * v) / 100.0;
     ep = -encB - encA;
     //ed = epold - ep;
@@ -177,7 +177,6 @@ void turn(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmgl
     va = v * sgn(distance) + u;
     va = max(abs(va), 15) * sgn(va);
     vb = v * sgn(distance) - u;
-    vb = max(abs(vb), 15) * sgn(vb);
     motorA.rotate(va);
     motorB.rotate(-vb);
     Serial.print(encoders[ENCODERA]);
@@ -195,66 +194,47 @@ void turn(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmgl
   delay(250);
 }
 
-bool toTags(int tormoz = 10, int vmin = 15, int space = 95) {
-  forward(100);
+void toOpp(int tormoz = 10, int v = 15, int space = 95) {
   while (Serial2.available()) Serial.println(Serial2.read());
-  //while (fromCamera() % 2000 / 4 == 0 and fromCamera() / 2000 == 0)
-  //  ;
-  bool tag1 = false;
-  bool noTags = false;
+  fromCamera();
   long errors = fromCamera();
-  tag1 = max(tag1, errors % 2);
-  noTags = 1 - errors % 4 / 2;
   int a = -1;
   long x = 0;
   int znak = 1;
-  int errorTag = errors % 2000 / 4;
-  errorTag -= 250 * sgn(errorTag);
-  int toTag = errors / 2000;
-  float ke = 0.2;
-  float kv = 1.2;
-  int v = vmin;
+  int galsx = 0;
+  int galsw = 0;
+  int udar = 0;
+  float ke = 0.6;
   float u = 0;
+  int flag = 0;
   uint32_t myTimer = millis();
   while (true) {
-    if (!noTags) {
-      v = toTag * kv;
-      v -= tormoz;
-      v = max(vmin, v);
-      v = min(vmin, v);
-    }
-    u = float(errorTag) * ke;
-    u = min(abs(u), v / 2) * sgn(u);
+    Serial.println(errors);
+    u = float(galsx) * ke;
     motorA.rotate(v + u);
     motorB.rotate(v - u);
-    if (toTag == 0 and !noTags and millis() - myTimer > 500) {
+    if (galsw >= 6 and galsw != 0 and millis() - myTimer > 1500 and flag == 0) {
+      v = 0;
+      flag = 1;
+    }
+    if (flag == 1 and abs(galsx) < 5) {
       motorA.stay();
       motorB.stay();
       delay(250);
-      forward(100);
-      Serial.print(errors);
-      Serial.println("ok");
       break;
     }
-    Serial.print(errors);
-    Serial.print(" ");
-    Serial.print(errorTag);
-    Serial.print(" ");
-    Serial.println(toTag);
     if (Serial2.available()) {
       a = Serial2.read();
       if (a == space) {
+        errors = x * znak;
         a = -1;
         znak = 1;
-        errors = x;
-        tag1 = max(tag1, errors % 2);
-        noTags = 1 - errors % 4 / 2;
-        errorTag = errors % 2000 / 4;
-        errorTag -= 250 * sgn(errorTag);
-        toTag = errors / 2000;
         x = 0;
+        galsx = errors % 400 / 2 - 100;
+        galsw = errors % 40000 / 400;
+        udar = errors % 40000;
       } else {
-        if (a == 45) znak = -1;
+        if (a == 45) znak *= -1;
         else {
           x *= 10;
           x += a - 48;
@@ -262,7 +242,6 @@ bool toTags(int tormoz = 10, int vmin = 15, int space = 95) {
       }
     }
   }
-  return tag1;
 }
 
 int fromArduino(int space = 95) {
@@ -298,6 +277,7 @@ void toArduino(int a) {
 }
 
 void setup() {
+  int naction = 0;
   Serial.begin(9600);
   Serial2.begin(9600);
   Serial3.begin(9600);
@@ -306,12 +286,9 @@ void setup() {
   attachInterrupt(INTERRUPTB, countEncoderB, RISING);
   pinMode(PINENCODERB, 0);
   delay(2500);
-  forward(750);
-  forward(-750);
-  turn(360);
-  turn(-360);
-  for(int i = 0; i < 5; i++) {
-    toArduino(1);
+  //toOpp();
+  if(rnum == 0) {
+    
   }
 }
 

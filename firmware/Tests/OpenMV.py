@@ -1,6 +1,7 @@
 import sensor, image, time
 from pyb import UART
 
+
 uart = UART(1, 9600)
 
 sensor.reset()                      # Reset and initialize the sensor.
@@ -21,9 +22,16 @@ sensor.set_auto_exposure(False, exposure_us=10000)
 
 keye = 0.25
 
-gals = (43, 100, 20, 125, 36, 127)
+gals = (56, 100, 18, 106, 54, 123)
 
 ruka = (25, 93, -42, -17, -4, 112)
+
+def sgn(a):
+    if(a > 0):
+        return 1
+    if(a < 0):
+        return -1
+    return 0
 
 while(True):
     #clock.tick()                    # Update the FPS clock.
@@ -47,21 +55,21 @@ while(True):
                 ruka_pix[1] = abs(ruka_pix[1] - gals_pix[1]) / gals_pix[2]
             else:
                 ruka_pix[1] = 0
-    tag0 = 0
+    istag = 0
     tag_rect = 0
     for tag in img.find_apriltags(families=1):
         if tag.id() == 3:
-            tag0 = 1
+            istag = 1
             tag_rect = tag.rect()
-    if gals_pix[3] != 0:
-        img.draw_rectangle(gals_pix[3])
+    #if gals_pix[3] != 0:
+        #img.draw_rectangle(gals_pix[3])
     if ruka_pix[3] != 0:
         img.draw_rectangle(ruka_pix[3])
     if tag_rect != 0:
         img.draw_rectangle(tag_rect)
     udar = 0
     if ruka_pix[1] != 0 and ruka_pix[2] != 0:
-        if ruka_pix[2] > 1.7:
+        if ruka_pix[2] > 1.5:
             udar = 2
         else:
             if ruka_pix[1] > 4.5:
@@ -69,14 +77,15 @@ while(True):
             else:
                 udar = 3
     #print(ruka_pix[1], ruka_pix[2])
-    print(udar)
-    #toUart = tag0
-    #toUart += min(gals_pix[1], 99) * 2
-    #toUart += min(gals_pix[2], 99) * 200
-    #toUart += min(ruka_pix[2], 99) * 20000
-    #toUart += int(delta_gr * 100) * 2000000
-    ##print('toUart', toUart)
-    #uart.write(str(int(toUart)))
-    #uart.write("_")
+    print('udar =', udar)
+    print('w =', gals_pix[2])
+    toUart = istag
+    toUart += min(max(gals_pix[1] + 100, 0), 199) * 2
+    toUart += min(gals_pix[2], 99) * 400
+    toUart += udar * 40000
+    print('toUart =', toUart)
+    uart.write(str(int(toUart)))
+    uart.write("_")
+    time.sleep_ms(10)
     #print(clock.fps())              # Note: OpenMV Cam runs about half as fast when connected
                                     # to the IDE. The FPS should increase once disconnected.

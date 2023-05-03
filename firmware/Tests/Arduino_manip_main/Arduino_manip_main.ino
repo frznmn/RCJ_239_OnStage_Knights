@@ -101,8 +101,7 @@ void udarVlevo() {
 void udarVpravo() {
   long gyrox, gyroy, gyroz, gyroold;
   toPositions(0, -90, 0, 90, 0, true);
-  toPositions(-45, -90, 0, 90, 0, true);
-  toPositions(-45, -90, 45, 90, 0, true);
+  toPositions(0, -90, 45, 90, 0, true);
   imu.read();
   gyrox = imu.g.x;
   gyroy = imu.g.y;
@@ -111,7 +110,7 @@ void udarVpravo() {
   gyroy = abs(gyroy);
   gyroz = abs(gyroz);
   gyroold = gyrox + gyroy + gyroz;
-  toPositions(-45, -90, 45, 0, 90, false);
+  toPositions(0, -90, 45, 0, 90, false);
   uint32_t myTimer = millis();
   myDFPlayer.play(random(1, 4));
   while (true) {
@@ -134,8 +133,7 @@ void udarVpravo() {
     int nServs = ticks();
     if (nServs == 31) break;
   }
-  toPositions(-45, -90, 45, 90, 0, true);
-  toPositions(-45, -90, 0, 90, 0, true);
+  toPositions(0, -90, 45, 90, 0, true);
   toPositions(0, -90, 0, 90, 0, true);
 }
 
@@ -260,7 +258,7 @@ void blokVlevo() {
   gyroy = abs(gyroy);
   gyroz = abs(gyroz);
   gyroold = gyrox + gyroy + gyroz;
-  toPositions(-55, -90, -70, 80, 0, true);
+  toPositions(-45, -90, -75, 110, 40, true);
   uint32_t myTimer = millis();
   while (true) {
     imu.read();
@@ -343,6 +341,7 @@ void setup() {
   servo3.attach(3, MIN_PULSES[3], MAX_PULSES[3], zeros[3], ks[3], 90);
   servo4.attach(4, MIN_PULSES[4], MAX_PULSES[4], zeros[4], ks[4], 0);
   delay(2500);
+  udarVpravo();
 }
 
 void loop() {
