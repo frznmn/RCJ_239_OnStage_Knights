@@ -19,6 +19,7 @@
 float kpmglobal = 4, kdmglobal = 1, kimglobal = 0.001, kpsglobal = 5, kdsglobal = 1, kisglobal = 0.007, kvglobal = 0.1;
 long encoders[2] = { 0, 0 }, Astop = 0, Bstop = 0;
 int rnum = 1;
+int distance = 6;
 
 //functions for external interrupts
 void countEncoderA() {
@@ -194,7 +195,80 @@ void turn(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmgl
   delay(250);
 }
 
-void toOpp(int tormoz = 10, int v = 15, int space = 95) {
+int isLeaved(int dist = distance - 1, uint16_t time = 1500) {
+  int leaved = 0;
+  while (Serial2.available()) Serial2.read();
+  fromCamera();
+  uint32_t myTimer = millis();
+  int a = -1;
+  long x = 0;
+  int znak = 1;
+  int galsx = 0;
+  int galsw = 0;
+  int udar = 0;
+  while (millis() - myTimer < time) {
+    if (Serial2.available()) {
+      a = Serial2.read();
+      if (a == space) {
+        errors = x * znak;
+        a = -1;
+        znak = 1;
+        x = 0;
+        galsx = errors % 400 / 2 - 100;
+        galsw = errors % 40000 / 400;
+        udar = errors % 40000;
+      } else {
+        if (a == 45) znak *= -1;
+        else {
+          x *= 10;
+          x += a - 48;
+        }
+      }
+    }
+    if (galsw < dist and galsw != 0) {
+      leaved = 1;
+      break
+    }
+  }
+  return leaved;
+}
+
+void waitUntileaved(uint16_t time = 5000) {
+  while (Serial2.available()) Serial2.read();
+  fromCamera();
+  uint32_t myTimer = millis();
+  int a = -1;
+  long x = 0;
+  int znak = 1;
+  int galsx = 0;
+  int galsw = 0;
+  int udar = 0;
+  while (millis() - myTimer < time) {
+    if (Serial2.available()) {
+      a = Serial2.read();
+      if (a == space) {
+        errors = x * znak;
+        a = -1;
+        znak = 1;
+        x = 0;
+        galsx = errors % 400 / 2 - 100;
+        galsw = errors % 40000 / 400;
+        udar = errors % 40000;
+      } else {
+        if (a == 45) znak *= -1;
+        else {
+          x *= 10;
+          x += a - 48;
+        }
+      }
+    }
+    if (galsw < dist and galsw != 0) {
+      break
+    }
+  }
+}
+
+void toOpp(int dist = distance, int v = 15, int space = 95) {
   while (Serial2.available()) Serial.println(Serial2.read());
   fromCamera();
   long errors = fromCamera();
@@ -213,7 +287,7 @@ void toOpp(int tormoz = 10, int v = 15, int space = 95) {
     u = float(galsx) * ke;
     motorA.rotate(v + u);
     motorB.rotate(v - u);
-    if (galsw >= 6 and galsw != 0 and millis() - myTimer > 1500 and flag == 0) {
+    if (galsw >= distance and galsw != 0 and millis() - myTimer > 1500 and flag == 0) {
       v = 0;
       flag = 1;
     }
@@ -287,8 +361,7 @@ void setup() {
   pinMode(PINENCODERB, 0);
   delay(2500);
   //toOpp();
-  if(rnum == 0) {
-    
+  if (rnum == 0) {
   }
 }
 
