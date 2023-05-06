@@ -1,4 +1,4 @@
-#include <SmoothServoDriver.h>
+#include "SmoothServoDriver.h"
 
 void PCA9685SmoothServo::attach(int _pinServo, int _minPulseWidth, int _maxPulseWidth, int _zero, float _k, int _servoPosition = 0, int _maxAngle = 180, int _FREQUENCY = 50, uint8_t addr = 0x40) {
   pinServo = _pinServo;

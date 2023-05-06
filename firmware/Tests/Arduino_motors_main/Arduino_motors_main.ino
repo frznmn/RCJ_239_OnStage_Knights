@@ -4,30 +4,32 @@
 #define M1INB 13
 #define M1PWM 11
 #define M2EN 6
-#define M2INA 7
-#define M2INB 10
+#define M2INA 10
+#define M2INB 7
 #define M2PWM 9
 #define ENCODERA 0
 #define ENCODERB 1
 #define INTERRUPTA 0
 #define INTERRUPTB 1
-#define PINENCODERA 28
-#define PINENCODERB 29
+#define PINENCODERA 30
+#define PINENCODERB 31
 
 
 //variables
-float kpmglobal = 4, kdmglobal = 1, kimglobal = 0.001, kpsglobal = 5, kdsglobal = 1, kisglobal = 0.007, kvglobal = 0.1;
-long encoders[2] = { 0, 0 }, Astop = 0, Bstop = 0;
+float kpmglobal = 10, kdmglobal = 1, kimglobal = 0.001, kvglobal = 0.1;
+volatile long encoders[2] = { 0, 0 }, Astop = 0, Bstop = 0;
 int rnum = 1;
-int distance = 6;
+int distanceg = 6;
+int nUdarov = 6;
+int check = 0;
 
 //functions for external interrupts
 void countEncoderA() {
-  encoders[ENCODERA] -= digitalRead(PINENCODERA) * 2 - 1;
+  encoders[ENCODERA] += digitalRead(PINENCODERA) * 2 - 1;
 }
 
 void countEncoderB() {
-  encoders[ENCODERB] -= digitalRead(PINENCODERB) * 2 - 1;
+  encoders[ENCODERB] += digitalRead(PINENCODERB) * 2 - 1;
 }
 
 //class for motors
@@ -54,7 +56,7 @@ public:
     int v = map(abs(motorSpeed), 0, 100, 0, 255);
     digitalWrite(pinMotINA, (sgn(motorSpeed) + 1) / 2);
     digitalWrite(pinMotINB, (-sgn(motorSpeed) + 1) / 2);
-    analogWrite(pinMotPWM, v);
+    analogWrite(pinMotPWM, constrain(v, -255, 255));
   }
   //function that stops motor
   void stay() {
@@ -106,37 +108,28 @@ void forward(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kd
   float u;
   int v;
   float kp, kd, ki;
-  while (abs(encA + encB) < abs(distance) * 2) {
-    encA = encoders[ENCODERA];
-    encB = encoders[ENCODERB];
-    if (abs(encA + encB) < abs(distance)) {
-      v = abs(encA + encB) / 2;
+  while (encA + encB < abs(distance) * 2) {
+    encA = abs(encoders[ENCODERA]);
+    encB = abs(encoders[ENCODERB]);
+    if (encA + encB < abs(distance)) {
+      v = (encA + encB) / 2;
     } else {
-      v = abs(distance) - abs(encA + encB) / 2;
+      v = abs(distance) - (encA + encB) / 2;
     }
     v = float(v) * kv;
     v += 15;
-    v = max(15, v);
     v = min(vmax, v);
     kp = float(_kp * v) / 100.0;
-    ep = encB - encA;
+    ep = (encB - encA) * sgn(distance);
     //ed = epold - ep;
     ei += ep;
+    if (sgn(epold) != sgn(ep)) ei = 0;
     u = float(ep) * kp + ed * kd + float(ei) * ki;
     epold = ep;
     va = v * sgn(distance) + u;
-    va = max(abs(va), 15) * sgn(va);
     vb = v * sgn(distance) - u;
-    vb = max(abs(vb), 15) * sgn(vb);
     motorA.rotate(va);
     motorB.rotate(vb);
-    Serial.print(encoders[ENCODERA]);
-    Serial.print(" ");
-    Serial.print(encoders[ENCODERB]);
-    Serial.print(" ");
-    Serial.print(v);
-    Serial.print(" ");
-    Serial.println(u);
   }
   motorA.stay();
   motorB.stay();
@@ -147,46 +140,47 @@ void forward(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kd
 
 //synchronization of motors to turn
 void turn(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmglobal, float _ki = kimglobal, float kv = kvglobal) {
-  distance = float(distance) * 450.0 / 90.0;
+  distance = float(distance) * 415.0 / 90.0;
   long zeros[2] = { encoders[ENCODERA], encoders[ENCODERB] }, ei = 0;
   int va = 0;
   int vb = 0;
   encoders[ENCODERA] = encoders[ENCODERB] = 0;
   vmax = abs(vmax);
   int encA = encoders[ENCODERA], encB = encoders[ENCODERB], epold = -encB - encA, ep = 0, ed = 0;
-  float u;
+  float u, uold;
   int v;
   float kp, kd, ki = _ki;
-  while (abs(encA - encB) < abs(distance) * 2) {
-    encA = encoders[ENCODERA];
-    encB = encoders[ENCODERB];
-    if (abs(encA - encB) < abs(distance)) {
-      v = abs(encA - encB) / 2;
+  while (encA + encB < abs(distance) * 2) {
+    encA = abs(encoders[ENCODERA]);
+    encB = abs(encoders[ENCODERB]);
+    if (encA + encB < abs(distance)) {
+      v = (encA + encB) / 2;
     } else {
-      v = abs(distance) - abs(encA - encB) / 2;
+      v = abs(distance) - (encA + encB) / 2;
     }
     v = float(v) * kv;
     v += 15;
-    v = max(15, v);
     v = min(vmax, v);
     kp = float(_kp * v) / 100.0;
-    ep = -encB - encA;
+    ep = (encB - encA) * sgn(distance);
     //ed = epold - ep;
     ei += ep;
+    if (sgn(epold) != sgn(ep)) ei = 0;
     u = float(ep) * kp + ed * kd + float(ei) * _ki;
     epold = ep;
-    va = v * sgn(distance) + u;
-    va = max(abs(va), 15) * sgn(va);
-    vb = v * sgn(distance) - u;
+    va = constrain(v * sgn(distance) + u, -100, 100);
+    vb = constrain(v * sgn(distance) - u, -100, 100);
     motorA.rotate(va);
     motorB.rotate(-vb);
-    Serial.print(encoders[ENCODERA]);
+    Serial.print(encA);
     Serial.print(" ");
-    Serial.print(encoders[ENCODERB]);
+    Serial.print(encB);
     Serial.print(" ");
-    Serial.print(v);
+    Serial.print(va);
     Serial.print(" ");
-    Serial.println(u);
+    Serial.print(vb);
+    Serial.print(" ");
+    Serial.println(ep);
   }
   motorA.stay();
   motorB.stay();
@@ -195,10 +189,11 @@ void turn(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmgl
   delay(250);
 }
 
-int isLeaved(int dist = distance - 1, uint16_t time = 1500) {
+int isLeaved(int dist = distanceg - 1, int space = 85, uint16_t time = 1500) {
   int leaved = 0;
   while (Serial2.available()) Serial2.read();
   fromCamera();
+  long errors = 0;
   uint32_t myTimer = millis();
   int a = -1;
   long x = 0;
@@ -227,15 +222,16 @@ int isLeaved(int dist = distance - 1, uint16_t time = 1500) {
     }
     if (galsw < dist and galsw != 0) {
       leaved = 1;
-      break
+      break;
     }
   }
   return leaved;
 }
 
-void waitUntileaved(uint16_t time = 5000) {
+void waitUntilLeaves(int dist = distanceg - 1, int space = 85, uint16_t time = 5000) {
   while (Serial2.available()) Serial2.read();
   fromCamera();
+  long errors = 0;
   uint32_t myTimer = millis();
   int a = -1;
   long x = 0;
@@ -263,12 +259,49 @@ void waitUntileaved(uint16_t time = 5000) {
       }
     }
     if (galsw < dist and galsw != 0) {
-      break
+      break;
     }
   }
 }
 
-void toOpp(int dist = distance, int v = 15, int space = 95) {
+void waitUntilArrives(int dist = distanceg - 1, int space = 85, uint16_t time = 5000) {
+  dist -= 1;
+  while (Serial2.available()) Serial2.read();
+  fromCamera();
+  long errors = 0;
+  uint32_t myTimer = millis();
+  int a = -1;
+  long x = 0;
+  int znak = 1;
+  int galsx = 0;
+  int galsw = 0;
+  int udar = 0;
+  while (millis() - myTimer < time) {
+    if (Serial2.available()) {
+      a = Serial2.read();
+      if (a == space) {
+        errors = x * znak;
+        a = -1;
+        znak = 1;
+        x = 0;
+        galsx = errors % 400 / 2 - 100;
+        galsw = errors % 40000 / 400;
+        udar = errors % 40000;
+      } else {
+        if (a == 45) znak *= -1;
+        else {
+          x *= 10;
+          x += a - 48;
+        }
+      }
+    }
+    if (galsw >= dist and galsw != 0) {
+      break;
+    }
+  }
+}
+
+void toOpp(int dist = distanceg, int v = 15, int space = 95) {
   while (Serial2.available()) Serial.println(Serial2.read());
   fromCamera();
   long errors = fromCamera();
@@ -287,7 +320,7 @@ void toOpp(int dist = distance, int v = 15, int space = 95) {
     u = float(galsx) * ke;
     motorA.rotate(v + u);
     motorB.rotate(v - u);
-    if (galsw >= distance and galsw != 0 and millis() - myTimer > 1500 and flag == 0) {
+    if (galsw >= dist and galsw != 0 and millis() - myTimer > 1500 and flag == 0) {
       v = 0;
       flag = 1;
     }
@@ -350,6 +383,69 @@ void toArduino(int a) {
   Serial3.write(95);
 }
 
+int defense(int nUdar = 5) {
+  int operation = 0;
+  int n1 = 0, n2 = 0, n3 = 0;
+  int a = 0;
+  int blok = 0;
+  int defensed = 0;
+  forward(-1000);
+  waitUntilArrives();
+  while(Serial2.available()) Serial2.read();
+  fromCamera();
+  for(int i = 0; i < nUdar; i++) {
+    a = fromCamera() % 40000;
+    switch(a) {
+      case 1: {
+        n1 += 1;
+        break;
+      }
+      case 2: {
+        n2 += 1;
+        break;
+      }
+      case 3: {
+        n3 += 1;
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+  }
+  if(n1 > n2 and n1 > n3) {
+    blok = 1;
+  }
+  else {
+    if(n2 > n1 and n2 > n3) {
+      blok = 2;
+    }
+    else {
+      if(n3 > n1 and n2 > n3) {
+        blok = 3;
+      }
+      else {
+        blok = random(1, 4);
+      }
+    }
+  }
+  blok += 3;
+  for(int i = 0; i < 5; i++) {
+    toArduino(blok * 2 + check);
+  }
+  check = (check + 1) % 2;
+  while(Serial3.available()) Serial3.read();
+  fromArduino();
+  defensed = fromArduino();
+  if(defensed == 2) {
+    operation = 2;
+  }
+  else {
+    operation = 1;
+  }
+  return operation;
+}
+
 void setup() {
   int naction = 0;
   Serial.begin(9600);
@@ -359,10 +455,10 @@ void setup() {
   pinMode(PINENCODERA, 0);
   attachInterrupt(INTERRUPTB, countEncoderB, RISING);
   pinMode(PINENCODERB, 0);
-  delay(2500);
-  //toOpp();
-  if (rnum == 0) {
-  }
+  turn(360);
+  //delay(2500);
+  // motorA.stay();
+  // motorB.stay();
 }
 
 void loop() {

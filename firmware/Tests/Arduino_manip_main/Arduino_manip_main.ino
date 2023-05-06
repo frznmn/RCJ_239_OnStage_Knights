@@ -330,9 +330,9 @@ void setup() {
     Serial.println(F("Unable to begin:"));
     Serial.println(F("1.Please recheck the connection!"));
     Serial.println(F("2.Please insert the SD card!"));
-    while (true) {
-      delay(0);  // Code to compatible with ESP8266 watch dog.
-    }
+    // while (true) {
+    //   delay(0);  // Code to compatible with ESP8266 watch dog.
+    // }
   }
   myDFPlayer.volume(0);  //Set volume value. From 0 to 30
   servo0.attach(0, MIN_PULSES[0], MAX_PULSES[0], zeros[0], ks[0], 0);
@@ -341,7 +341,7 @@ void setup() {
   servo3.attach(3, MIN_PULSES[3], MAX_PULSES[3], zeros[3], ks[3], 90);
   servo4.attach(4, MIN_PULSES[4], MAX_PULSES[4], zeros[4], ks[4], 0);
   delay(2500);
-  udarVpravo();
+  //udarVpravo();
 }
 
 void loop() {
