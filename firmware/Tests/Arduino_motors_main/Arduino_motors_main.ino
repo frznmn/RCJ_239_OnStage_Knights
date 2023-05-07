@@ -21,7 +21,6 @@ volatile long encoders[2] = { 0, 0 }, Astop = 0, Bstop = 0;
 int rnum = 1;
 int distanceg = 6;
 int nUdarov = 6;
-int check = 0;
 
 //functions for external interrupts
 void countEncoderA() {
@@ -95,6 +94,58 @@ long fromCamera(int space = 95) {
       }
     }
   }
+}
+
+int fromArduino(int space = 95) {
+  int a = -1;
+  int x = 0;
+  int znak = 1;
+  int len = 1;
+  while (true) {
+    while (!Serial3.available())
+      ;
+    a = Serial3.read();
+    if (a == space) return x * znak;
+    else {
+      if (a == 45) znak = -1;
+      else {
+        x += (a - 48) * len;
+        len *= 10;
+      }
+    }
+  }
+}
+
+void toArduino(int a, int space = 95) {
+  while (a != 0) {
+    if (a < 0) {
+      Serial3.write(45);
+      a *= -1;
+    }
+    Serial3.write(a % 10 + 48);
+    a /= 10;
+  }
+  Serial3.write(space);
+}
+
+int cleanReadBuff3(int space = 95) {
+  while(Serial3.available()) Serial3.read();
+  fromArduino(space);
+  int a = fromArduino();
+  return a;
+}
+
+int writeBuff3(int a, int n = 5, int space = 95) {
+  for(int i = 0; i < n; i++) {
+    toArduino(a, space);
+  }
+}
+
+int cleanReadBuff2(int space = 95) {
+  while(Serial2.available()) Serial2.read();
+  fromCamera(space);
+  int a = fromCamera();
+  return a;
 }
 
 //synchronization of motors to go forward/backward
@@ -189,11 +240,9 @@ void turn(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmgl
   delay(250);
 }
 
-int isLeaved(int dist = distanceg - 1, int space = 85, uint16_t time = 1500) {
+int isLeaved(int dist = distanceg - 1, int space = 95, uint16_t time = 1500) {
   int leaved = 0;
-  while (Serial2.available()) Serial2.read();
-  fromCamera();
-  long errors = 0;
+  long errors = cleanReadBuff3(space);
   uint32_t myTimer = millis();
   int a = -1;
   long x = 0;
@@ -228,10 +277,8 @@ int isLeaved(int dist = distanceg - 1, int space = 85, uint16_t time = 1500) {
   return leaved;
 }
 
-void waitUntilLeaves(int dist = distanceg - 1, int space = 85, uint16_t time = 5000) {
-  while (Serial2.available()) Serial2.read();
-  fromCamera();
-  long errors = 0;
+void waitUntilLeaves(int dist = distanceg - 1, int space = 95, uint16_t time = 5000) {
+  long errors = cleanReadBuff3(space);
   uint32_t myTimer = millis();
   int a = -1;
   long x = 0;
@@ -264,11 +311,9 @@ void waitUntilLeaves(int dist = distanceg - 1, int space = 85, uint16_t time = 5
   }
 }
 
-void waitUntilArrives(int dist = distanceg - 1, int space = 85, uint16_t time = 5000) {
+void waitUntilArrives(int dist = distanceg - 1, int space = 95, uint16_t time = 5000) {
   dist -= 1;
-  while (Serial2.available()) Serial2.read();
-  fromCamera();
-  long errors = 0;
+  long errors = cleanReadBuff3(space);
   uint32_t myTimer = millis();
   int a = -1;
   long x = 0;
@@ -302,9 +347,7 @@ void waitUntilArrives(int dist = distanceg - 1, int space = 85, uint16_t time = 
 }
 
 void toOpp(int dist = distanceg, int v = 15, int space = 95) {
-  while (Serial2.available()) Serial.println(Serial2.read());
-  fromCamera();
-  long errors = fromCamera();
+  long errors = cleanReadBuff3(space);
   int a = -1;
   long x = 0;
   int znak = 1;
@@ -351,49 +394,15 @@ void toOpp(int dist = distanceg, int v = 15, int space = 95) {
   }
 }
 
-int fromArduino(int space = 95) {
-  int a = -1;
-  int x = 0;
-  int znak = 1;
-  int len = 1;
-  while (true) {
-    while (!Serial3.available())
-      ;
-    a = Serial3.read();
-    if (a == space) return x * znak;
-    else {
-      if (a == 45) znak = -1;
-      else {
-        x += (a - 48) * len;
-        len *= 10;
-      }
-    }
-  }
-}
-
-void toArduino(int a, int space = 95) {
-  while (a != 0) {
-    if (a < 0) {
-      Serial3.write(45);
-      a *= -1;
-    }
-    Serial3.write(a % 10 + 48);
-    a /= 10;
-  }
-  Serial3.write(space);
-}
-
-int defense(int nUdar = 5, int dist = distanceg) {
+int defense(int nUdar = 5, int dist = distanceg, int nWrite = 5, int space = 95) {
   int operation = 0;
   int n1 = 0, n2 = 0, n3 = 0;
-  int a = 0;
   int blok = 0;
   int defensed = 0;
   int toUart = 0;
   forward(-1000);
   waitUntilArrives(dist - 1);
-  while (Serial2.available()) Serial2.read();
-  fromCamera();
+  int a = cleanReadBuff2(space);
   for (int i = 0; i < nUdar; i++) {
     a = fromCamera() % 40000;
     switch (a) {
@@ -431,14 +440,9 @@ int defense(int nUdar = 5, int dist = distanceg) {
       }
     }
   }
-  toUart = blok * 4 + check;
-  for (int i = 0; i < 5; i++) {
-    toArduino(toUart);
-  }
-  check = (check + 1) % 2;
-  while (Serial3.available()) Serial3.read();
-  fromArduino();
-  defensed = fromArduino();
+  toUart = blok * 2;
+  writeBuff3(toUart, nWrite, space);
+  defensed = cleanReadBuff3(space);
   if (defensed == 2) {
     operation = 2;
   } else {
@@ -447,23 +451,19 @@ int defense(int nUdar = 5, int dist = distanceg) {
   return operation;
 }
 
-int attack(int dist = distanceg, int degr = 20) {
+int attack(int dist = distanceg, int degr = 20, int nWrite = 5, int space = 95) {
   int operation = 0;
   int toUart = 0;
   int leaved = 0;
   waitUntilLeaves(dist - 1);
-  toUart = random(1, 4) * 2 + check;
-  for (int i = 0; i < 5; i++) {
-    toArduino(toUart);
-  }
-  check = (check + 1) % 2;
+  toUart = random(1, 4);
+  writeBuff3(toUart, nWrite, space);
   toOpp(dist);
   turn(-degr);
-  for (int i = 0; i < 5; i++) {
-    toArduino(1);
-  }
+  writeBuff3(1, nWrite, space);
+  cleanReadBuff3(space);
   turn(degr);
-  leaved = isLeaved();
+  leaved = isLeaved(dist - 1);
   if (leaved == 1) {
     operation = 2;
   } else {
@@ -481,23 +481,23 @@ void setup() {
   pinMode(PINENCODERA, 0);
   attachInterrupt(INTERRUPTB, countEncoderB, RISING);
   pinMode(PINENCODERB, 0);
-  int operation;
-  if (rnum == 0) {
-    operation = attack();
-  } else {
-    operation = defense();
-  }
-  for (int i = 1; i < nUdarov; i++) {
-    if (operation == 2) {
-      operation = attack();
-    } 
-    else {
-      operation = defense();
-    }
-  }
-  //delay(2500);
-  // motorA.stay();
-  // motorB.stay();
+  delay(2500);
+  // int operation;
+  // if (rnum == 0) {
+  //   operation = attack();
+  // } else {
+  //   operation = defense();
+  // }
+  // for (int i = 1; i < nUdarov; i++) {
+  //   if (operation == 2) {
+  //     operation = attack();
+  //   } 
+  //   else {
+  //     operation = defense();
+  //   }
+  // }
+  motorA.stay();
+  motorB.stay();
 }
 
 void loop() {

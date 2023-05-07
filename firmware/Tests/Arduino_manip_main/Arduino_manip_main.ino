@@ -315,6 +315,19 @@ void toArduino(int a, int space = 95) {
   Serial3.write(space);
 }
 
+int cleanReadBuff3(int space = 95) {
+  while(Serial3.available()) Serial3.read();
+  fromArduino(space);
+  int a = fromArduino();
+  return a;
+}
+
+int writeBuff3(int a, int n = 5, int space = 95) {
+  for(int i = 0; i < n; i++) {
+    toArduino(a, space);
+  }
+}
+
 void setup() {
   Serial.begin(9600);
   Wire.begin();
@@ -341,8 +354,34 @@ void setup() {
   servo3.attach(3, MIN_PULSES[3], MAX_PULSES[3], zeros[3], ks[3], 90);
   servo4.attach(4, MIN_PULSES[4], MAX_PULSES[4], zeros[4], ks[4], 0);
   delay(2500);
-  //udarVpravo();
 }
 
 void loop() {
+  int action = cleanReadBuff3();
+  switch(action) {
+    case 1: {
+      udarVpravo();
+      break;
+    }
+    case 2: {
+      udarVpered();
+      break;
+    }
+    case 3: {
+      udarVpravo();
+      break;
+    }
+    case 4: {
+      blokVpravo();
+      break;
+    }
+    case 5: {
+      blokVpered();
+      break;
+    }
+    case 6: {
+      blokVpravo();
+      break;
+    }
+  }
 }
