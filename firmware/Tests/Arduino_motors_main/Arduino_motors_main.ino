@@ -446,6 +446,8 @@ int defense(int nUdar = 5) {
   return operation;
 }
 
+int 
+
 void setup() {
   int naction = 0;
   Serial.begin(9600);
