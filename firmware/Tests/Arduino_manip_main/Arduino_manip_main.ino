@@ -303,7 +303,7 @@ int fromArduino(int space = 95) {
   }
 }
 
-void toArduino(int a) {
+void toArduino(int a, int space = 95) {
   while (a != 0) {
     if (a < 0) {
       Serial3.write(45);
@@ -312,7 +312,7 @@ void toArduino(int a) {
     Serial3.write(a % 10 + 48);
     a /= 10;
   }
-  Serial3.write(95);
+  Serial3.write(space);
 }
 
 void setup() {

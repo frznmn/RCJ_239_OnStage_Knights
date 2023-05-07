@@ -371,7 +371,7 @@ int fromArduino(int space = 95) {
   }
 }
 
-void toArduino(int a) {
+void toArduino(int a, int space = 95) {
   while (a != 0) {
     if (a < 0) {
       Serial3.write(45);
@@ -380,73 +380,97 @@ void toArduino(int a) {
     Serial3.write(a % 10 + 48);
     a /= 10;
   }
-  Serial3.write(95);
+  Serial3.write(space);
 }
 
-int defense(int nUdar = 5) {
+int defense(int nUdar = 5, int dist = distanceg) {
   int operation = 0;
   int n1 = 0, n2 = 0, n3 = 0;
   int a = 0;
   int blok = 0;
   int defensed = 0;
+  int toUart = 0;
   forward(-1000);
-  waitUntilArrives();
-  while(Serial2.available()) Serial2.read();
+  waitUntilArrives(dist - 1);
+  while (Serial2.available()) Serial2.read();
   fromCamera();
-  for(int i = 0; i < nUdar; i++) {
+  for (int i = 0; i < nUdar; i++) {
     a = fromCamera() % 40000;
-    switch(a) {
-      case 1: {
-        n1 += 1;
-        break;
-      }
-      case 2: {
-        n2 += 1;
-        break;
-      }
-      case 3: {
-        n3 += 1;
-        break;
-      }
-      default: {
-        break;
-      }
+    switch (a) {
+      case 1:
+        {
+          n1 += 1;
+          break;
+        }
+      case 2:
+        {
+          n2 += 1;
+          break;
+        }
+      case 3:
+        {
+          n3 += 1;
+          break;
+        }
+      default:
+        {
+          break;
+        }
     }
   }
-  if(n1 > n2 and n1 > n3) {
+  if (n1 > n2 and n1 > n3) {
     blok = 1;
-  }
-  else {
-    if(n2 > n1 and n2 > n3) {
+  } else {
+    if (n2 > n1 and n2 > n3) {
       blok = 2;
-    }
-    else {
-      if(n3 > n1 and n2 > n3) {
+    } else {
+      if (n3 > n1 and n2 > n3) {
         blok = 3;
-      }
-      else {
+      } else {
         blok = random(1, 4);
       }
     }
   }
-  blok += 3;
-  for(int i = 0; i < 5; i++) {
-    toArduino(blok * 2 + check);
+  toUart = blok * 4 + check;
+  for (int i = 0; i < 5; i++) {
+    toArduino(toUart);
   }
   check = (check + 1) % 2;
-  while(Serial3.available()) Serial3.read();
+  while (Serial3.available()) Serial3.read();
   fromArduino();
   defensed = fromArduino();
-  if(defensed == 2) {
+  if (defensed == 2) {
     operation = 2;
-  }
-  else {
+  } else {
     operation = 1;
   }
   return operation;
 }
 
-int 
+int attack(int dist = distanceg, int degr = 20) {
+  int operation = 0;
+  int toUart = 0;
+  int leaved = 0;
+  waitUntilLeaves(dist - 1);
+  toUart = random(1, 4) * 2 + check;
+  for (int i = 0; i < 5; i++) {
+    toArduino(toUart);
+  }
+  check = (check + 1) % 2;
+  toOpp(dist);
+  turn(-degr);
+  for (int i = 0; i < 5; i++) {
+    toArduino(1);
+  }
+  turn(degr);
+  leaved = isLeaved();
+  if (leaved == 1) {
+    operation = 2;
+  } else {
+    operation = 1;
+  }
+  return operation;
+}
 
 void setup() {
   int naction = 0;
@@ -457,7 +481,20 @@ void setup() {
   pinMode(PINENCODERA, 0);
   attachInterrupt(INTERRUPTB, countEncoderB, RISING);
   pinMode(PINENCODERB, 0);
-  turn(360);
+  int operation;
+  if (rnum == 0) {
+    operation = attack();
+  } else {
+    operation = defense();
+  }
+  for (int i = 1; i < nUdarov; i++) {
+    if (operation == 2) {
+      operation = attack();
+    } 
+    else {
+      operation = defense();
+    }
+  }
   //delay(2500);
   // motorA.stay();
   // motorB.stay();
