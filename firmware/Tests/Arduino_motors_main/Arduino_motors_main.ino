@@ -18,8 +18,8 @@
 //variables
 float kpmglobal = 10, kdmglobal = 1, kimglobal = 0.001, kvglobal = 0.1;
 volatile long encoders[2] = { 0, 0 }, Astop = 0, Bstop = 0;
-int rnum = 1;
-int distanceg = 6;
+int rnum = 0;
+int distanceg = 9;
 int nUdarov = 6;
 
 //functions for external interrupts
@@ -67,7 +67,7 @@ private:
 };
 
 //initialisation motors
-MOTOR motorA(M1EN, M1INA, M1INB, M1PWM, 0);
+MOTOR motorA(M1EN, M1INA, M1INB, M1PWM, 1);
 MOTOR motorB(M2EN, M2INA, M2INB, M2PWM, 1);
 
 //number's sign function
@@ -82,15 +82,15 @@ long fromCamera(int space = 95) {
   long x = 0;
   int znak = 1;
   while (true) {
-    while (!Serial2.available())
-      ;
-    a = Serial2.read();
-    if (a == space) return x * znak;
-    else {
-      if (a == 45) znak = -1;
+    if (Serial2.available()) {
+      a = Serial2.read();
+      if (a == space) return x * znak;
       else {
-        x *= 10;
-        x += a - 48;
+        if (a == 45) znak = -1;
+        else {
+          x *= 10;
+          x += a - 48;
+        }
       }
     }
   }
@@ -129,22 +129,23 @@ void toArduino(int a, int space = 95) {
 }
 
 int cleanReadBuff3(int space = 95) {
-  while(Serial3.available()) Serial3.read();
+  while (Serial3.available()) Serial3.read();
   fromArduino(space);
-  int a = fromArduino();
+  int a = fromArduino(space);
   return a;
 }
 
 int writeBuff3(int a, int n = 5, int space = 95) {
-  for(int i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     toArduino(a, space);
+    delay(10);
   }
 }
 
 int cleanReadBuff2(int space = 95) {
-  while(Serial2.available()) Serial2.read();
+  while (Serial2.available()) Serial2.read();
   fromCamera(space);
-  int a = fromCamera();
+  int a = fromCamera(space);
   return a;
 }
 
@@ -242,7 +243,7 @@ void turn(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmgl
 
 int isLeaved(int dist = distanceg - 1, int space = 95, uint16_t time = 1500) {
   int leaved = 0;
-  long errors = cleanReadBuff3(space);
+  long errors = cleanReadBuff2(space);
   uint32_t myTimer = millis();
   int a = -1;
   long x = 0;
@@ -278,7 +279,7 @@ int isLeaved(int dist = distanceg - 1, int space = 95, uint16_t time = 1500) {
 }
 
 void waitUntilLeaves(int dist = distanceg - 1, int space = 95, uint16_t time = 5000) {
-  long errors = cleanReadBuff3(space);
+  long errors = cleanReadBuff2(space);
   uint32_t myTimer = millis();
   int a = -1;
   long x = 0;
@@ -313,7 +314,7 @@ void waitUntilLeaves(int dist = distanceg - 1, int space = 95, uint16_t time = 5
 
 void waitUntilArrives(int dist = distanceg - 1, int space = 95, uint16_t time = 5000) {
   dist -= 1;
-  long errors = cleanReadBuff3(space);
+  long errors = cleanReadBuff2(space);
   uint32_t myTimer = millis();
   int a = -1;
   long x = 0;
@@ -324,6 +325,7 @@ void waitUntilArrives(int dist = distanceg - 1, int space = 95, uint16_t time = 
   while (millis() - myTimer < time) {
     if (Serial2.available()) {
       a = Serial2.read();
+      //Serial.println(a);
       if (a == space) {
         errors = x * znak;
         a = -1;
@@ -341,13 +343,14 @@ void waitUntilArrives(int dist = distanceg - 1, int space = 95, uint16_t time = 
       }
     }
     if (galsw >= dist and galsw != 0) {
+      Serial.println("ok");
       break;
     }
   }
 }
 
 void toOpp(int dist = distanceg, int v = 15, int space = 95) {
-  long errors = cleanReadBuff3(space);
+  long errors = cleanReadBuff2(space);
   int a = -1;
   long x = 0;
   int znak = 1;
@@ -359,7 +362,6 @@ void toOpp(int dist = distanceg, int v = 15, int space = 95) {
   int flag = 0;
   uint32_t myTimer = millis();
   while (true) {
-    Serial.println(errors);
     u = float(galsx) * ke;
     motorA.rotate(v + u);
     motorB.rotate(v - u);
@@ -440,7 +442,8 @@ int defense(int nUdar = 5, int dist = distanceg, int nWrite = 5, int space = 95)
       }
     }
   }
-  toUart = blok * 2;
+  toUart = blok + 3;
+  Serial.println(blok);
   writeBuff3(toUart, nWrite, space);
   defensed = cleanReadBuff3(space);
   if (defensed == 2) {
@@ -448,10 +451,11 @@ int defense(int nUdar = 5, int dist = distanceg, int nWrite = 5, int space = 95)
   } else {
     operation = 1;
   }
+  Serial.println(operation);
   return operation;
 }
 
-int attack(int dist = distanceg, int degr = 20, int nWrite = 5, int space = 95) {
+int attack(int dist = distanceg, int degr = 15, int nWrite = 5, int space = 95) {
   int operation = 0;
   int toUart = 0;
   int leaved = 0;
@@ -459,6 +463,7 @@ int attack(int dist = distanceg, int degr = 20, int nWrite = 5, int space = 95) 
   toUart = random(1, 4);
   writeBuff3(toUart, nWrite, space);
   toOpp(dist);
+  delay(2000);
   turn(-degr);
   writeBuff3(1, nWrite, space);
   cleanReadBuff3(space);
@@ -482,23 +487,25 @@ void setup() {
   attachInterrupt(INTERRUPTB, countEncoderB, RISING);
   pinMode(PINENCODERB, 0);
   delay(2500);
-  // int operation;
-  // if (rnum == 0) {
-  //   operation = attack();
-  // } else {
-  //   operation = defense();
-  // }
-  // for (int i = 1; i < nUdarov; i++) {
-  //   if (operation == 2) {
-  //     operation = attack();
-  //   } 
-  //   else {
-  //     operation = defense();
-  //   }
-  // }
+  int operation;
+  if (rnum == 0) {
+    operation = attack();
+  } else {
+    operation = defense();
+  }
+  for (int i = 1; i < nUdarov; i++) {
+    if (operation == 2) {
+      operation = attack();
+    } else { 
+      operation = defense();
+    }
+  }
   motorA.stay();
   motorB.stay();
 }
 
 void loop() {
+  Serial.print(encoders[ENCODERA]);
+  Serial.print(" ");
+  Serial.println(encoders[ENCODERB]);
 }

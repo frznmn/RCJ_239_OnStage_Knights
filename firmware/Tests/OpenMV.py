@@ -17,12 +17,12 @@ sensor.set_contrast(3)
 sensor.set_saturation(3)
 sensor.set_brightness(3)
 sensor.set_quality(100)
-sensor.set_auto_exposure(False, exposure_us=10000)
+sensor.set_auto_exposure(False)
 #print(current_exposure_time_in_microseconds)
 
 keye = 0.25
 
-gals = (56, 100, 18, 106, 54, 123)
+gals = (54, 93, 25, 124, 30, 120)
 
 ruka = (25, 93, -42, -17, -4, 112)
 
@@ -39,13 +39,13 @@ while(True):
     img.lens_corr(1.3)
     gals_pix = [0, 0, 0, 0]
     ruka_pix = [0, 0, 0, 0]
-    for g in img.find_blobs([gals], pixels_threshold=100, roi=(0, img.height() // 2, img.width(), img.height() // 2)):
+    for g in img.find_blobs([gals], pixels_threshold=50, roi=(0, img.height() // 2, img.width(), img.height() // 2)):
         if g.pixels() > ruka_pix[0]:
             gals_pix[0] = g.pixels()
             gals_pix[1] = g.x() + g.w() // 2 - img.width() // 2
             gals_pix[2] = g.w()
             gals_pix[3] = g.rect()
-    for r in img.find_blobs([ruka], pixels_threshold=100, roi=(0, 0, img.width(), img.height() * 3 // 4)):
+    for r in img.find_blobs([ruka], pixels_threshold=100, roi=(0, 0, img.width() // 2, img.height() * 3 // 4)):
         if r.pixels() > ruka_pix[0]:
             ruka_pix[0] = r.pixels()
             ruka_pix[1] = r.x() + r.w() // 2 - img.width() // 2
@@ -61,8 +61,8 @@ while(True):
         if tag.id() == 3:
             istag = 1
             tag_rect = tag.rect()
-    #if gals_pix[3] != 0:
-        #img.draw_rectangle(gals_pix[3])
+    if gals_pix[3] != 0:
+        img.draw_rectangle(gals_pix[3])
     if ruka_pix[3] != 0:
         img.draw_rectangle(ruka_pix[3])
     if tag_rect != 0:

@@ -16,6 +16,7 @@ PCA9685SmoothServo servo4;
 DFRobotDFPlayerMini myDFPlayer;
 void printDetail(uint8_t type, int value);
 
+int udarMax = 400;
 int MIN_PULSES[5] = { 508, 464, 464, 411, 411 };  //These are the minimum and maximum wavelength values which serve MG 995.
 int MAX_PULSES[5] = { 2524, 2597, 2597, 2636, 2636 };
 int zeros[5] = { 80, 88, 80, 70, 60 };
@@ -57,11 +58,59 @@ void toPositions(int a0 = 1000, int a1 = 1000, int a2 = 1000, int a3 = 1000, int
   }
 }
 
-void udarVlevo() {
+int fromArduino(int space = 95) {
+  int a = -1;
+  int x = 0;
+  int znak = 1;
+  int len = 1;
+  while (true) {
+    while (!Serial3.available())
+      ;
+    a = Serial3.read();
+    if (a == space) return x * znak;
+    else {
+      if (a == 45) znak = -1;
+      else {
+        x += (a - 48) * len;
+        len *= 10;
+      }
+    }
+  }
+}
+
+void toArduino(int a, int space = 95) {
+  while (a != 0) {
+    if (a < 0) {
+      Serial3.write(45);
+      a *= -1;
+    }
+    Serial3.write(a % 10 + 48);
+    a /= 10;
+  }
+  Serial3.write(space);
+}
+
+int cleanReadBuff3(int space = 95) {
+  while (Serial3.available()) Serial3.read();
+  fromArduino(space);
+  int a = fromArduino();
+  return a;
+}
+
+int writeBuff3(int a, int n = 5, int space = 95) {
+  for (int i = 0; i < n; i++) {
+    toArduino(a, space);
+    delay(10);
+  }
+}
+
+void udarVlevo(int space = 95, int nWrite = 5) {
   long gyrox, gyroy, gyroz, gyroold;
   toPositions(0, -90, 0, 90, 0, true);
   toPositions(-45, -90, 0, 90, 0, true);
   toPositions(-45, -90, -45, 90, 0, true);
+  delay(500);
+  cleanReadBuff3(space);
   imu.read();
   gyrox = imu.g.x;
   gyroy = imu.g.y;
@@ -96,12 +145,15 @@ void udarVlevo() {
   toPositions(-45, -90, -45, 90, 0, true);
   toPositions(-45, -90, 0, 90, 0, true);
   toPositions(0, -90, 0, 90, 0, true);
+  writeBuff3(1, nWrite, space);
 }
 
-void udarVpravo() {
+void udarVpravo(int space = 95, int nWrite = 5) {
   long gyrox, gyroy, gyroz, gyroold;
   toPositions(0, -90, 0, 90, 0, true);
-  toPositions(0, -90, 45, 90, 0, true);
+  toPositions(-15, -90, 45, 90, 0, true);
+  delay(500);
+  cleanReadBuff3(space);
   imu.read();
   gyrox = imu.g.x;
   gyroy = imu.g.y;
@@ -126,7 +178,7 @@ void udarVpravo() {
     Serial.println(abs(gyroold));
     if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax and millis() - myTimer > 500) {
       Serial.println(abs(gyrox + gyroy + gyroz - gyroold));
-      toPositions(-45, -90, 45, servo3.getPosition() + 10, servo4.getPosition() - 10, true);
+      toPositions(0, -90, 45, servo3.getPosition() + 10, servo4.getPosition() - 10, true);
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
@@ -135,11 +187,14 @@ void udarVpravo() {
   }
   toPositions(0, -90, 45, 90, 0, true);
   toPositions(0, -90, 0, 90, 0, true);
+  writeBuff3(1, nWrite, space);
 }
 
-void udarVpered() {
+void udarVpered(int space = 95, int nWrite = 5) {
   long gyrox, gyroy, gyroz, gyroold;
   toPositions(0, -90, 0, 90, 0, true);
+  delay(500);
+  cleanReadBuff3(space);
   imu.read();
   gyrox = imu.g.x;
   gyroy = imu.g.y;
@@ -159,11 +214,11 @@ void udarVpered() {
     gyrox = abs(gyrox);
     gyroy = abs(gyroy);
     gyroz = abs(gyroz);
-    Serial.print(abs(gyrox + gyroy + gyroz));
-    Serial.print(" ");
-    Serial.println(abs(gyroold));
+    //Serial.print(abs(gyrox + gyroy + gyroz));
+    //Serial.print(" ");
+    //Serial.println(abs(gyroold));
     if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax and millis() - myTimer > 500) {
-      Serial.println(abs(gyrox + gyroy + gyroz - gyroold));
+      //Serial.println(abs(gyrox + gyroy + gyroz - gyroold));
       toPositions(servo0.getPosition() + 10, -90, 0, servo3.getPosition() + 10, 0, true);
       break;
     }
@@ -172,9 +227,10 @@ void udarVpered() {
     if (nServs == 31) break;
   }
   toPositions(0, -90, 0, 90, 0, true);
+  writeBuff3(1, nWrite, space);
 }
 
-void blokVpered() {
+void blokVpered(int space = 95, int nWrite = 5) {
   long gyrox, gyroy, gyroz, gyroold;
   toPositions(0, -90, 0, 90, 0, true);
   toPositions(0, -90, 0, 45, 0, true);
@@ -196,24 +252,25 @@ void blokVpered() {
     gyrox = abs(gyrox);
     gyroy = abs(gyroy);
     gyroz = abs(gyroz);
-    if ((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < 650) and millis() - myTimer > 500) {
+    if ((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < udarMax) and millis() - myTimer > 500) {
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
   }
-  delay(1000);
-  if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax) {
-    myDFPlayer.play(random(4, 7));
-  } else {
-    myDFPlayer.play(random(7, 10));
-  }
   toPositions(0, -90, 0, 45, 0, true);
   toPositions(0, -90, 0, 90, 0, true);
+  if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax) {
+    writeBuff3(2, nWrite, space);
+    myDFPlayer.play(random(4, 7));
+  } else {
+    writeBuff3(1, nWrite, space);
+    myDFPlayer.play(random(7, 10));
+  }
 }
 
-void blokVpravo() {
+void blokVpravo(int space = 95, int nWrite = 5) {
   long gyrox, gyroy, gyroz, gyroold;
-  toPositions(  0, -90, 0, 90, 0, true);
+  toPositions(0, -90, 0, 90, 0, true);
   imu.read();
   gyrox = imu.g.x;
   gyroy = imu.g.y;
@@ -232,21 +289,22 @@ void blokVpravo() {
     gyrox = abs(gyrox);
     gyroy = abs(gyroy);
     gyroz = abs(gyroz);
-    if ((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < 650) and millis() - myTimer > 500) {
+    if ((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < udarMax) and millis() - myTimer > 500) {
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
   }
-  delay(1000);
+  toPositions(0, -90, 0, 90, 0, true);
   if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax) {
+    writeBuff3(2, nWrite, space);
     myDFPlayer.play(random(4, 7));
   } else {
+    writeBuff3(1, nWrite, space);
     myDFPlayer.play(random(7, 10));
   }
-  toPositions(0, -90, 0, 90, 0, true);
 }
 
-void blokVlevo() {
+void blokVlevo(int space = 95, int nWrite = 5) {
   long gyrox, gyroy, gyroz, gyroold;
   toPositions(0, -90, 0, 90, 0, true);
   toPositions(0, -90, 0, 45, 0, true);
@@ -268,63 +326,19 @@ void blokVlevo() {
     gyrox = abs(gyrox);
     gyroy = abs(gyroy);
     gyroz = abs(gyroz);
-    if ((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < 650) and millis() - myTimer > 500) {
+    if ((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < udarMax) and millis() - myTimer > 500) {
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
   }
-  delay(1000);
-  if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax) {
-    myDFPlayer.play(random(4, 7));
-  } else {
-    myDFPlayer.play(random(7, 10));
-  }
   toPositions(0, -90, 0, 45, 0, true);
   toPositions(0, -90, 0, 90, 0, true);
-}
-
-int fromArduino(int space = 95) {
-  int a = -1;
-  int x = 0;
-  int znak = 1;
-  int len = 1;
-  while (true) {
-    while (!Serial3.available())
-      ;
-    a = Serial3.read();
-    if (a == space) return x * znak;
-    else {
-      if (a == 45) znak = -1;
-      else {
-        x += (a - 48) * len;
-        len *= 10;
-      }
-    }
-  }
-}
-
-void toArduino(int a, int space = 95) {
-  while (a != 0) {
-    if (a < 0) {
-      Serial3.write(45);
-      a *= -1;
-    }
-    Serial3.write(a % 10 + 48);
-    a /= 10;
-  }
-  Serial3.write(space);
-}
-
-int cleanReadBuff3(int space = 95) {
-  while(Serial3.available()) Serial3.read();
-  fromArduino(space);
-  int a = fromArduino();
-  return a;
-}
-
-int writeBuff3(int a, int n = 5, int space = 95) {
-  for(int i = 0; i < n; i++) {
-    toArduino(a, space);
+  if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax) {
+    writeBuff3(2, nWrite, space);
+    myDFPlayer.play(random(4, 7));
+  } else {
+    writeBuff3(1, nWrite, space);
+    myDFPlayer.play(random(7, 10));
   }
 }
 
@@ -347,41 +361,51 @@ void setup() {
     //   delay(0);  // Code to compatible with ESP8266 watch dog.
     // }
   }
-  myDFPlayer.volume(0);  //Set volume value. From 0 to 30
+  myDFPlayer.volume(30);  //Set volume value. From 0 to 30
   servo0.attach(0, MIN_PULSES[0], MAX_PULSES[0], zeros[0], ks[0], 0);
   servo1.attach(1, MIN_PULSES[1], MAX_PULSES[1], zeros[1], ks[1], -90);
   servo2.attach(2, MIN_PULSES[2], MAX_PULSES[2], zeros[2], ks[2], 0);
   servo3.attach(3, MIN_PULSES[3], MAX_PULSES[3], zeros[3], ks[3], 90);
   servo4.attach(4, MIN_PULSES[4], MAX_PULSES[4], zeros[4], ks[4], 0);
-  delay(2500);
 }
 
 void loop() {
   int action = cleanReadBuff3();
-  switch(action) {
-    case 1: {
-      udarVpravo();
-      break;
-    }
-    case 2: {
-      udarVpered();
-      break;
-    }
-    case 3: {
-      udarVpravo();
-      break;
-    }
-    case 4: {
-      blokVpravo();
-      break;
-    }
-    case 5: {
-      blokVpered();
-      break;
-    }
-    case 6: {
-      blokVpravo();
-      break;
-    }
+  Serial.println(action);
+  switch (action) {
+    case 1:
+      {
+        udarVpravo();
+        break;
+      }
+    case 2:
+      {
+        udarVpered();
+        break;
+      }
+    case 3:
+      {
+        udarVpravo();
+        break;
+      }
+    case 4:
+      {
+        blokVlevo();
+        break;
+      }
+    case 5:
+      {
+        blokVpered();
+        break;
+      }
+    case 6:
+      {
+        blokVpravo();
+        break;
+      }
+    default:
+      {
+        break;
+      }
   }
 }
