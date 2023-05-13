@@ -16,12 +16,11 @@ PCA9685SmoothServo servo4;
 DFRobotDFPlayerMini myDFPlayer;
 void printDetail(uint8_t type, int value);
 
-int udarMax = 400;
+int udarMax = 900;
 int MIN_PULSES[5] = { 508, 464, 464, 411, 411 };  //These are the minimum and maximum wavelength values which serve MG 995.
 int MAX_PULSES[5] = { 2524, 2597, 2597, 2636, 2636 };
 int zeros[5] = { 80, 88, 80, 70, 60 };
 float ks[5] = { -8.0 / 9.0, -8.0 / 9.0, 85.0 / 90.0, -54.0 / 90.0, -54.0 / 90.0 };
-int rnum = 1;
 
 int ticks(bool a0 = true, bool a1 = true, bool a2 = true, bool a3 = true, bool a4 = true) {
   int a = 0;
@@ -107,10 +106,10 @@ int writeBuff3(int a, int n = 5, int space = 95) {
 void udarVlevo(int space = 95, int nWrite = 5) {
   long gyrox, gyroy, gyroz, gyroold;
   toPositions(0, -90, 0, 90, 0, true);
-  toPositions(-45, -90, 0, 90, 0, true);
-  toPositions(-45, -90, -45, 90, 0, true);
-  delay(500);
+  toPositions(0, -90, 0, 70, 40, true);
+  toPositions(15, -90, -90, 70, 40, true);
   cleanReadBuff3(space);
+  toPositions(-15, -90, -90, 70, 40, true);
   imu.read();
   gyrox = imu.g.x;
   gyroy = imu.g.y;
@@ -119,7 +118,7 @@ void udarVlevo(int space = 95, int nWrite = 5) {
   gyroy = abs(gyroy);
   gyroz = abs(gyroz);
   gyroold = gyrox + gyroy + gyroz;
-  toPositions(-45, -90, -45, 0, 90, false);
+  toPositions(-15, -90, -90, 0, 90, false);
   uint32_t myTimer = millis();
   myDFPlayer.play(random(1, 4));
   while (true) {
@@ -135,15 +134,15 @@ void udarVlevo(int space = 95, int nWrite = 5) {
     Serial.println(abs(gyroold));
     if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax and millis() - myTimer > 500) {
       Serial.println(abs(gyrox + gyroy + gyroz - gyroold));
-      toPositions(-45, -90, -45, servo3.getPosition() + 10, servo4.getPosition() - 10, true);
+      toPositions(-15, -90, -90, servo3.getPosition() + 10, servo4.getPosition() - 10, true);
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
     int nServs = ticks();
     if (nServs == 31) break;
   }
-  toPositions(-45, -90, -45, 90, 0, true);
-  toPositions(-45, -90, 0, 90, 0, true);
+  toPositions(-15, -90, -90, 70, 40, true);
+  toPositions(0, -90, 0, 70, 40, true);
   toPositions(0, -90, 0, 90, 0, true);
   writeBuff3(1, nWrite, space);
 }
@@ -151,8 +150,7 @@ void udarVlevo(int space = 95, int nWrite = 5) {
 void udarVpravo(int space = 95, int nWrite = 5) {
   long gyrox, gyroy, gyroz, gyroold;
   toPositions(0, -90, 0, 90, 0, true);
-  toPositions(-15, -90, 45, 90, 0, true);
-  delay(500);
+  toPositions(-20, -90, 45, 90, 0, true);
   cleanReadBuff3(space);
   imu.read();
   gyrox = imu.g.x;
@@ -230,7 +228,7 @@ void udarVpered(int space = 95, int nWrite = 5) {
   writeBuff3(1, nWrite, space);
 }
 
-void blokVpered(int space = 95, int nWrite = 5) {
+void blokVpered(int space = 95, int nWrite = 5, uint32_t time = 5000) {
   long gyrox, gyroy, gyroz, gyroold;
   toPositions(0, -90, 0, 90, 0, true);
   toPositions(0, -90, 0, 45, 0, true);
@@ -252,14 +250,16 @@ void blokVpered(int space = 95, int nWrite = 5) {
     gyrox = abs(gyrox);
     gyroy = abs(gyroy);
     gyroz = abs(gyroz);
-    if ((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < udarMax) and millis() - myTimer > 500) {
+    if (((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < udarMax) and millis() - myTimer > 500) or millis() - myTimer > time) {
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
   }
+  uint32_t mil1 = millis();
+  delay(1000);
   toPositions(0, -90, 0, 45, 0, true);
   toPositions(0, -90, 0, 90, 0, true);
-  if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax) {
+  if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax or mil1 - myTimer > time) {
     writeBuff3(2, nWrite, space);
     myDFPlayer.play(random(4, 7));
   } else {
@@ -268,7 +268,7 @@ void blokVpered(int space = 95, int nWrite = 5) {
   }
 }
 
-void blokVpravo(int space = 95, int nWrite = 5) {
+void blokVlevo(int space = 95, int nWrite = 5, uint32_t time = 5000) {
   long gyrox, gyroy, gyroz, gyroold;
   toPositions(0, -90, 0, 90, 0, true);
   imu.read();
@@ -289,13 +289,15 @@ void blokVpravo(int space = 95, int nWrite = 5) {
     gyrox = abs(gyrox);
     gyroy = abs(gyroy);
     gyroz = abs(gyroz);
-    if ((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < udarMax) and millis() - myTimer > 500) {
+    if (((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < udarMax) and millis() - myTimer > 500) or millis() - myTimer > time) {
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
   }
+  uint32_t mil1 = millis();
+  delay(1000);
   toPositions(0, -90, 0, 90, 0, true);
-  if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax) {
+  if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax or mil1 - myTimer > time) {
     writeBuff3(2, nWrite, space);
     myDFPlayer.play(random(4, 7));
   } else {
@@ -304,10 +306,10 @@ void blokVpravo(int space = 95, int nWrite = 5) {
   }
 }
 
-void blokVlevo(int space = 95, int nWrite = 5) {
+void blokVpravo(int space = 95, int nWrite = 5, uint32_t time = 5000) {
   long gyrox, gyroy, gyroz, gyroold;
   toPositions(0, -90, 0, 90, 0, true);
-  toPositions(0, -90, 0, 45, 0, true);
+  toPositions(0, -90, 0, 30, 0, true);
   imu.read();
   gyrox = imu.g.x;
   gyroy = imu.g.y;
@@ -316,7 +318,7 @@ void blokVlevo(int space = 95, int nWrite = 5) {
   gyroy = abs(gyroy);
   gyroz = abs(gyroz);
   gyroold = gyrox + gyroy + gyroz;
-  toPositions(-45, -90, -75, 110, 40, true);
+  toPositions(-35, -90, -75, 110, 40, true);
   uint32_t myTimer = millis();
   while (true) {
     imu.read();
@@ -326,14 +328,16 @@ void blokVlevo(int space = 95, int nWrite = 5) {
     gyrox = abs(gyrox);
     gyroy = abs(gyroy);
     gyroz = abs(gyroz);
-    if ((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < udarMax) and millis() - myTimer > 500) {
+    if (((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < udarMax) and millis() - myTimer > 500) or millis() - myTimer > time) {
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
   }
-  toPositions(0, -90, 0, 45, 0, true);
+  uint32_t mil1 = millis();
+  delay(1000);
+  toPositions(0, -90, 0, 30, 0, true);
   toPositions(0, -90, 0, 90, 0, true);
-  if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax) {
+  if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax or mil1 - myTimer > time) {
     writeBuff3(2, nWrite, space);
     myDFPlayer.play(random(4, 7));
   } else {
@@ -362,11 +366,11 @@ void setup() {
     // }
   }
   myDFPlayer.volume(30);  //Set volume value. From 0 to 30
-  servo0.attach(0, MIN_PULSES[0], MAX_PULSES[0], zeros[0], ks[0], 0);
+  servo0.attach(0, MIN_PULSES[0], MAX_PULSES[0], zeros[0], ks[0], -90);
   servo1.attach(1, MIN_PULSES[1], MAX_PULSES[1], zeros[1], ks[1], -90);
   servo2.attach(2, MIN_PULSES[2], MAX_PULSES[2], zeros[2], ks[2], 0);
-  servo3.attach(3, MIN_PULSES[3], MAX_PULSES[3], zeros[3], ks[3], 90);
-  servo4.attach(4, MIN_PULSES[4], MAX_PULSES[4], zeros[4], ks[4], 0);
+  servo3.attach(3, MIN_PULSES[3], MAX_PULSES[3], zeros[3], ks[3], 0);
+  servo4.attach(4, MIN_PULSES[4], MAX_PULSES[4], zeros[4], ks[4], -90);
 }
 
 void loop() {
@@ -385,12 +389,12 @@ void loop() {
       }
     case 3:
       {
-        udarVpravo();
+        udarVlevo();
         break;
       }
     case 4:
       {
-        blokVlevo();
+        blokVpravo();
         break;
       }
     case 5:
@@ -400,7 +404,29 @@ void loop() {
       }
     case 6:
       {
-        blokVpravo();
+        blokVlevo();
+        break;
+      }
+    case 7:
+      {
+        toPositions(0, -90, 0, 90, 0, true);
+        break;
+      }
+    case 8:
+      {
+        toPositions(0, -90, -90, 0, 90  , true);
+        break;
+      }
+    case 9:
+      {
+        toPositions(0, -90, 0, 90, 0, true);
+        toPositions(0, -90, 0, 45, 0, true);
+        toPositions(20, -90, -90, 45, 0, true);
+        toPositions(20, -90, -45, 45, 0, true);
+        toPositions(20, -90, 0, 45, 0, true);
+        toPositions(20, -90, -90, 45, 0, true);
+        toPositions(0, -90, 0, 45, 0, true);
+        toPositions(0, -90, 0, 90, 0, true);
         break;
       }
     default:
@@ -408,4 +434,5 @@ void loop() {
         break;
       }
   }
+  delay(500);
 }

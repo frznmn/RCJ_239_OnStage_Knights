@@ -18,13 +18,13 @@ sensor.set_saturation(3)
 sensor.set_brightness(3)
 sensor.set_quality(100)
 sensor.set_auto_exposure(False)
+current_exposure_time_in_microseconds=  sensor.get_exposure_us()
+sensor.set_auto_exposure(False, \
+    exposure_us = int(current_exposure_time_in_microseconds* 0.7))
 #print(current_exposure_time_in_microseconds)
 
-keye = 0.25
-
-gals = (54, 93, 25, 124, 30, 120)
-
-ruka = (25, 93, -42, -17, -4, 112)
+gals = (13, 88, 29, 127, 15, 127)
+ruka = (41, 96, -121, -28, -40, 98)
 
 def sgn(a):
     if(a > 0):
@@ -37,51 +37,54 @@ while(True):
     #clock.tick()                    # Update the FPS clock.
     img = sensor.snapshot()
     img.lens_corr(1.3)
-    gals_pix = [0, 0, 0, 0]
+    gals_pix = [0, 0, 0]
     ruka_pix = [0, 0, 0, 0]
-    for g in img.find_blobs([gals], pixels_threshold=50, roi=(0, img.height() // 2, img.width(), img.height() // 2)):
-        if g.pixels() > ruka_pix[0]:
-            gals_pix[0] = g.pixels()
-            gals_pix[1] = g.x() + g.w() // 2 - img.width() // 2
-            gals_pix[2] = g.w()
-            gals_pix[3] = g.rect()
-    for r in img.find_blobs([ruka], pixels_threshold=100, roi=(0, 0, img.width() // 2, img.height() * 3 // 4)):
+    for g in img.find_blobs([gals], pixels_threshold=30, roi=(0, img.height() // 2, img.width(), img.height() // 2), merge=False):
+        if abs(g.x() + g.w() // 2 - img.width() // 2) < abs(gals_pix[0]) or gals_pix[0] == 0:
+            gals_pix[0] = g.x() + g.w() // 2 - img.width() // 2
+            gals_pix[1] = g.w()
+            gals_pix[2] = g.rect()
+    for r in img.find_blobs([ruka], pixels_threshold=30, roi=(0, 0, img.width() // 2, img.height() // 2), merge=False):
         if r.pixels() > ruka_pix[0]:
             ruka_pix[0] = r.pixels()
-            ruka_pix[1] = r.x() + r.w() // 2 - img.width() // 2
+            ruka_pix[1] = r.cx() - img.width() // 2
             ruka_pix[2] = r.h() / r.w()
             ruka_pix[3] = r.rect()
-            if gals_pix[1] != 0 and gals_pix[2] != 0 and ruka_pix[1] != 0:
-                ruka_pix[1] = abs(ruka_pix[1] - gals_pix[1]) / gals_pix[2]
+            if gals_pix[0] != 0 and gals_pix[1] != 0 and ruka_pix[1] != 0:
+                ruka_pix[1] = abs(ruka_pix[1] - gals_pix[0]) / gals_pix[1]
             else:
                 ruka_pix[1] = 0
     istag = 0
     tag_rect = 0
-    for tag in img.find_apriltags(families=1):
-        if tag.id() == 3:
+    for tag in img.find_apriltags(families=17):
+        if tag.family() == 16 and tag.id() == 6:
             istag = 1
             tag_rect = tag.rect()
-    if gals_pix[3] != 0:
-        img.draw_rectangle(gals_pix[3])
+        if tag.family() == 1 and tag.id() == 1:
+            gals_pix[0] = tag.cx() - img.width() // 2
+            gals_pix[1] = tag.w()
+            gals_pix[2] = tag.rect()
+    if gals_pix[2] != 0:
+        img.draw_rectangle(gals_pix[2], color = (255, 0, 0))
     if ruka_pix[3] != 0:
-        img.draw_rectangle(ruka_pix[3])
+        img.draw_rectangle(ruka_pix[3], color = (255, 0, 0))
     if tag_rect != 0:
-        img.draw_rectangle(tag_rect)
+        img.draw_rectangle(tag_rect, color = (255, 0, 0))
     udar = 0
     if ruka_pix[1] != 0 and ruka_pix[2] != 0:
         if ruka_pix[2] > 1.5:
             udar = 2
         else:
-            if ruka_pix[1] > 4.5:
-                udar = 1
-            else:
+            if ruka_pix[2] < 0.75:
                 udar = 3
-    #print(ruka_pix[1], ruka_pix[2])
+            else:
+                udar = 1
+    print(ruka_pix[1], ruka_pix[2])
     print('udar =', udar)
-    print('w =', gals_pix[2])
+    print('w =', gals_pix[1])
     toUart = istag
-    toUart += min(max(gals_pix[1] + 100, 0), 199) * 2
-    toUart += min(gals_pix[2], 99) * 400
+    toUart += min(max(gals_pix[0] + 100, 0), 199) * 2
+    toUart += min(gals_pix[1], 99) * 400
     toUart += udar * 40000
     print('toUart =', toUart)
     uart.write(str(int(toUart)))

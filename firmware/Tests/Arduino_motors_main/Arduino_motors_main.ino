@@ -18,8 +18,9 @@
 //variables
 float kpmglobal = 10, kdmglobal = 1, kimglobal = 0.001, kvglobal = 0.1;
 volatile long encoders[2] = { 0, 0 }, Astop = 0, Bstop = 0;
-int rnum = 0;
+int rnum = 1;
 int distanceg = 9;
+int distancet = 20;
 int nUdarov = 6;
 
 //functions for external interrupts
@@ -241,7 +242,7 @@ void turn(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmgl
   delay(250);
 }
 
-int isLeaved(int dist = distanceg - 1, int space = 95, uint16_t time = 1500) {
+int isLeaved(int dist = distanceg - 1, int space = 95, uint16_t time = 2500) {
   int leaved = 0;
   long errors = cleanReadBuff2(space);
   uint32_t myTimer = millis();
@@ -349,7 +350,7 @@ void waitUntilArrives(int dist = distanceg - 1, int space = 95, uint16_t time = 
   }
 }
 
-void toOpp(int dist = distanceg, int v = 15, int space = 95) {
+void toOpp(int dist = distanceg, int v = 15, int space = 95, int wUst = 15, float kvOpp = 1.2) {
   long errors = cleanReadBuff2(space);
   int a = -1;
   long x = 0;
@@ -360,11 +361,19 @@ void toOpp(int dist = distanceg, int v = 15, int space = 95) {
   float ke = 0.6;
   float u = 0;
   int flag = 0;
+  int uOpp = 0;
   uint32_t myTimer = millis();
   while (true) {
     u = float(galsx) * ke;
-    motorA.rotate(v + u);
-    motorB.rotate(v - u);
+    if (dist == distancet) {
+      uOpp = float(wUst - galsw) * kvOpp;
+      uOpp = min(abs(uOpp), v / 3) * sgn(uOpp);
+      motorA.rotate(v + uOpp + u);
+      motorB.rotate(v + uOpp - u);
+    } else {
+      motorA.rotate(v + u);
+      motorB.rotate(v - u);
+    }
     if (galsw >= dist and galsw != 0 and millis() - myTimer > 1500 and flag == 0) {
       v = 0;
       flag = 1;
@@ -402,11 +411,13 @@ int defense(int nUdar = 5, int dist = distanceg, int nWrite = 5, int space = 95)
   int blok = 0;
   int defensed = 0;
   int toUart = 0;
-  forward(-1000);
-  waitUntilArrives(dist - 1);
+  forward(-500);
+  waitUntilArrives(dist - 2);
+  delay(1000);
   int a = cleanReadBuff2(space);
   for (int i = 0; i < nUdar; i++) {
-    a = fromCamera() % 40000;
+    a = fromCamera() / 40000;
+    Serial.println(a);
     switch (a) {
       case 1:
         {
@@ -450,16 +461,17 @@ int defense(int nUdar = 5, int dist = distanceg, int nWrite = 5, int space = 95)
     operation = 2;
   } else {
     operation = 1;
+    delay(1000);
   }
   Serial.println(operation);
   return operation;
 }
 
-int attack(int dist = distanceg, int degr = 15, int nWrite = 5, int space = 95) {
+int attack(int dist = distanceg, int degr = 14, int nWrite = 5, int space = 95) {
   int operation = 0;
   int toUart = 0;
   int leaved = 0;
-  waitUntilLeaves(dist - 1);
+  waitUntilLeaves(dist - 2);
   toUart = random(1, 4);
   writeBuff3(toUart, nWrite, space);
   toOpp(dist);
@@ -468,7 +480,7 @@ int attack(int dist = distanceg, int degr = 15, int nWrite = 5, int space = 95) 
   writeBuff3(1, nWrite, space);
   cleanReadBuff3(space);
   turn(degr);
-  leaved = isLeaved(dist - 1);
+  leaved = isLeaved(dist - 2);
   if (leaved == 1) {
     operation = 2;
   } else {
@@ -478,6 +490,7 @@ int attack(int dist = distanceg, int degr = 15, int nWrite = 5, int space = 95) 
 }
 
 void setup() {
+  randomSeed(analogRead(1));
   int naction = 0;
   Serial.begin(9600);
   Serial2.begin(9600);
@@ -486,19 +499,60 @@ void setup() {
   pinMode(PINENCODERA, 0);
   attachInterrupt(INTERRUPTB, countEncoderB, RISING);
   pinMode(PINENCODERB, 0);
-  delay(2500);
+  // delay(2500);
+  // writeBuff3(1);
+  // delay(2000);
+  // writeBuff3(1);
   int operation;
   if (rnum == 0) {
+    while (cleanReadBuff2() % 2 == 0)
+      ;
+    forward(3000, 20);
+    writeBuff3(7);
+    delay(3000);
+    turn(180);
+    delay(2000);
     operation = attack();
   } else {
+    while (cleanReadBuff2() % 2 == 0)
+      ;
+    while (cleanReadBuff2() % 40000 / 400 == 0) {
+      motorA.rotate(30);
+      motorB.rotate(30);
+    }
+    toOpp(distancet, 20);
+    forward(-500);
+    writeBuff3(7);
+    delay(5000);
     operation = defense();
   }
   for (int i = 1; i < nUdarov; i++) {
+    delay(500);
     if (operation == 2) {
       operation = attack();
-    } else { 
+    } else {
       operation = defense();
     }
+  }
+  if (rnum == 0) {
+    turn(90);
+    writeBuff3(8);
+    turn(210, 15);
+    delay(5000);
+    writeBuff3(7);
+    turn(60);
+    while (cleanReadBuff2() % 2 == 0)
+      ;
+    forward(3000);
+  } else {
+    forward(-100);
+    delay(3000);
+    writeBuff3(9);
+    delay(5000);
+    turn(180);
+    while (cleanReadBuff2() % 2 == 0)
+      ;
+    forward(3000);
   }
   motorA.stay();
   motorB.stay();
