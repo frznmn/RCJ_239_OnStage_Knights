@@ -424,7 +424,6 @@ void loop() {
         toPositions(20, -90, -90, 45, 0, true);
         toPositions(20, -90, -45, 45, 0, true);
         toPositions(20, -90, 0, 45, 0, true);
-        toPositions(20, -90, -90, 45, 0, true);
         toPositions(0, -90, 0, 45, 0, true);
         toPositions(0, -90, 0, 90, 0, true);
         break;

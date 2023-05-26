@@ -23,8 +23,8 @@ sensor.set_auto_exposure(False, \
     exposure_us = int(current_exposure_time_in_microseconds* 0.7))
 #print(current_exposure_time_in_microseconds)
 
-gals = (13, 88, 29, 127, 15, 127)
-ruka = (41, 96, -121, -28, -40, 98)
+gals = (41, 97, 28, 123, 21, 123)
+ruka = (17, 96, -118, -37, -5, 104)
 
 def sgn(a):
     if(a > 0):
@@ -72,10 +72,10 @@ while(True):
         img.draw_rectangle(tag_rect, color = (255, 0, 0))
     udar = 0
     if ruka_pix[1] != 0 and ruka_pix[2] != 0:
-        if ruka_pix[2] > 1.5:
+        if ruka_pix[2] > 1.6:
             udar = 2
         else:
-            if ruka_pix[2] < 0.75:
+            if ruka_pix[2] < 1:
                 udar = 3
             else:
                 udar = 1

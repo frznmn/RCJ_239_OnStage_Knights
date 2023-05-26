@@ -18,8 +18,8 @@
 //variables
 float kpmglobal = 10, kdmglobal = 1, kimglobal = 0.001, kvglobal = 0.1;
 volatile long encoders[2] = { 0, 0 }, Astop = 0, Bstop = 0;
-int rnum = 1;
-int distanceg = 9;
+int rnum = 0;
+int distanceg = 8;
 int distancet = 20;
 int nUdarov = 6;
 
@@ -242,7 +242,7 @@ void turn(int distance, int vmax = 100, float _kp = kpmglobal, float _kd = kdmgl
   delay(250);
 }
 
-int isLeaved(int dist = distanceg - 1, int space = 95, uint16_t time = 2500) {
+int isLeaved(int dist = distanceg - 1, int space = 95, uint16_t time = 3000) {
   int leaved = 0;
   long errors = cleanReadBuff2(space);
   uint32_t myTimer = millis();
@@ -279,7 +279,7 @@ int isLeaved(int dist = distanceg - 1, int space = 95, uint16_t time = 2500) {
   return leaved;
 }
 
-void waitUntilLeaves(int dist = distanceg - 1, int space = 95, uint16_t time = 5000) {
+void waitUntilLeaves(int dist = distanceg - 1, int space = 95, uint16_t time = 5500) {
   long errors = cleanReadBuff2(space);
   uint32_t myTimer = millis();
   int a = -1;
@@ -313,7 +313,7 @@ void waitUntilLeaves(int dist = distanceg - 1, int space = 95, uint16_t time = 5
   }
 }
 
-void waitUntilArrives(int dist = distanceg - 1, int space = 95, uint16_t time = 5000) {
+void waitUntilArrives(int dist = distanceg - 1, int space = 95, uint16_t time = 5500) {
   dist -= 1;
   long errors = cleanReadBuff2(space);
   uint32_t myTimer = millis();
