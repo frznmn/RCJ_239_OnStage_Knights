@@ -353,19 +353,17 @@ void setup() {
   Serial3.begin(9600);
   if (!imu.init()) {
     Serial.println("Failed to detect and initialize imu!");
-    while (1)
-      ;
+    // while (1)
+    //   ;
   }
   imu.enableDefault();
   if (!myDFPlayer.begin(Serial2)) {  //Use softwareSerial to communicate with mp3.
     Serial.println(F("Unable to begin:"));
     Serial.println(F("1.Please recheck the connection!"));
     Serial.println(F("2.Please insert the SD card!"));
-    // while (true) {
-    //   delay(0);  // Code to compatible with ESP8266 watch dog.
-    // }
+    // while (1)
+    //   ; 
   }
-  myDFPlayer.volume(30);  //Set volume value. From 0 to 30
   servo0.attach(0, MIN_PULSES[0], MAX_PULSES[0], zeros[0], ks[0], -90);
   servo1.attach(1, MIN_PULSES[1], MAX_PULSES[1], zeros[1], ks[1], -90);
   servo2.attach(2, MIN_PULSES[2], MAX_PULSES[2], zeros[2], ks[2], 0);

@@ -24,7 +24,7 @@ sensor.set_auto_exposure(False, \
 #print(current_exposure_time_in_microseconds)
 
 gals = (41, 97, 28, 123, 21, 123)
-ruka = (17, 96, -118, -37, -5, 104)
+ruka = (0, 73, -18, 127, -93, -20)
 
 def sgn(a):
     if(a > 0):
