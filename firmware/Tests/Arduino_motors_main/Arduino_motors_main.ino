@@ -19,8 +19,8 @@
 float kpmglobal = 10, kdmglobal = 1, kimglobal = 0.001, kvglobal = 0.1;
 volatile long encoders[2] = { 0, 0 }, Astop = 0, Bstop = 0;
 int rnum = 0;
-int distanceg = 8;
-int distancet = 20;
+int distanceg = 10;
+int distancet = 26;
 int nUdarov = 6;
 
 //functions for external interrupts
@@ -405,7 +405,7 @@ void toOpp(int dist = distanceg, int v = 15, int space = 95, int wUst = 15, floa
   }
 }
 
-int defense(int nUdar = 5, int dist = distanceg, int nWrite = 5, int space = 95) {
+int defense(int nUdar = 10, int dist = distanceg, int nWrite = 5, int space = 95) {
   int operation = 0;
   int n1 = 0, n2 = 0, n3 = 0;
   int blok = 0;
@@ -446,7 +446,7 @@ int defense(int nUdar = 5, int dist = distanceg, int nWrite = 5, int space = 95)
     if (n2 > n1 and n2 > n3) {
       blok = 2;
     } else {
-      if (n3 > n1 and n2 > n3) {
+      if (n3 > n1 and n3 > n2) {
         blok = 3;
       } else {
         blok = random(1, 4);
@@ -461,13 +461,12 @@ int defense(int nUdar = 5, int dist = distanceg, int nWrite = 5, int space = 95)
     operation = 2;
   } else {
     operation = 1;
-    delay(1000);
   }
   Serial.println(operation);
   return operation;
 }
 
-int attack(int dist = distanceg, int degr = 14, int nWrite = 5, int space = 95) {
+int attack(int dist = distanceg, int degr1 = 14, int degr2 = 28, int degr3 = 10, int nWrite = 5, int space = 95) {
   int operation = 0;
   int toUart = 0;
   int leaved = 0;
@@ -476,10 +475,50 @@ int attack(int dist = distanceg, int degr = 14, int nWrite = 5, int space = 95) 
   writeBuff3(toUart, nWrite, space);
   toOpp(dist);
   delay(2000);
-  turn(-degr);
+  switch (toUart) {
+    case 1:
+      {
+        turn(-degr1);
+        break;
+      }
+    case 2:
+      {
+        turn(-degr2);
+        break;
+      }
+    case 3:
+      {
+        turn(-degr3);
+        break;
+      }
+    default:
+      {
+        break;
+      }
+  }
   writeBuff3(1, nWrite, space);
   cleanReadBuff3(space);
-  turn(degr);
+  switch (toUart) {
+    case 1:
+      {
+        turn(degr1);
+        break;
+      }
+    case 2:
+      {
+        turn(degr2);
+        break;
+      }
+    case 3:
+      {
+        turn(degr3);
+        break;
+      }
+    default:
+      {
+        break;
+      }
+  }
   leaved = isLeaved(dist - 2);
   if (leaved == 1) {
     operation = 2;
@@ -507,19 +546,23 @@ void setup() {
   if (rnum == 0) {
     while (cleanReadBuff2() % 2 == 0)
       ;
-    forward(3000, 20);
+    forward(2500, 20);
     writeBuff3(7);
     delay(3000);
     turn(180);
     delay(2000);
     operation = attack();
   } else {
-    while (cleanReadBuff2() % 2 == 0)
-      ;
-    while (cleanReadBuff2() % 40000 / 400 == 0) {
-      motorA.rotate(30);
-      motorB.rotate(30);
+    uint32_t myTimer = millis();
+    int gw = 0;
+    while (millis() - myTimer < 250) {
+      gw = cleanReadBuff2() % 40000 / 400;
+      Serial.println(gw);
+      if (gw >= distancet * 10 / 13) {
+        myTimer = millis();
+      }
     }
+    Serial.println("aaa");
     toOpp(distancet, 20);
     forward(-500);
     writeBuff3(7);
@@ -534,25 +577,25 @@ void setup() {
       operation = defense();
     }
   }
-  if (rnum == 0) {
-    turn(90);
+  if (rnum == 0) {  
+    turn(-90);
     writeBuff3(8);
-    turn(210, 15);
+    turn(-270, 15);
     delay(5000);
     writeBuff3(7);
-    turn(60);
-    while (cleanReadBuff2() % 2 == 0)
-      ;
-    forward(3000);
+      while (cleanReadBuff2() % 2 == 0)
+    ;
+    forward(2500);
   } else {
     forward(-100);
-    delay(3000);
+    delay(2000);
     writeBuff3(9);
     delay(5000);
     turn(180);
-    while (cleanReadBuff2() % 2 == 0)
-      ;
-    forward(3000);
+      while (cleanReadBuff2() % 2 == 0)
+    ;
+    writeBuff3(10);
+    forward(2500);
   }
   motorA.stay();
   motorB.stay();

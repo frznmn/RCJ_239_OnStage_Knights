@@ -231,7 +231,7 @@ void udarVpered(int space = 95, int nWrite = 5) {
 void blokVpered(int space = 95, int nWrite = 5, uint32_t time = 5000) {
   long gyrox, gyroy, gyroz, gyroold;
   toPositions(0, -90, 0, 90, 0, true);
-  toPositions(0, -90, 0, 45, 0, true);
+  toPositions(0, -90, 0, 45, 10, true);
   imu.read();
   gyrox = imu.g.x;
   gyroy = imu.g.y;
@@ -240,7 +240,7 @@ void blokVpered(int space = 95, int nWrite = 5, uint32_t time = 5000) {
   gyroy = abs(gyroy);
   gyroz = abs(gyroz);
   gyroold = gyrox + gyroy + gyroz;
-  toPositions(20, -90, -90, 45, 0, true);
+  toPositions(20, -90, -90, 45, 10, true);
   uint32_t myTimer = millis();
   while (true) {
     imu.read();
@@ -257,7 +257,7 @@ void blokVpered(int space = 95, int nWrite = 5, uint32_t time = 5000) {
   }
   uint32_t mil1 = millis();
   delay(1000);
-  toPositions(0, -90, 0, 45, 0, true);
+  toPositions(0, -90, 0, 45, 10, true);
   toPositions(0, -90, 0, 90, 0, true);
   if (abs(gyrox + gyroy + gyroz - gyroold) > gyromax or mil1 - myTimer > time) {
     writeBuff3(2, nWrite, space);
@@ -318,7 +318,7 @@ void blokVpravo(int space = 95, int nWrite = 5, uint32_t time = 5000) {
   gyroy = abs(gyroy);
   gyroz = abs(gyroz);
   gyroold = gyrox + gyroy + gyroz;
-  toPositions(-35, -90, -75, 110, 40, true);
+  toPositions(-35, -90, -75, 100, 40, true);
   uint32_t myTimer = millis();
   while (true) {
     imu.read();
@@ -362,7 +362,7 @@ void setup() {
     Serial.println(F("1.Please recheck the connection!"));
     Serial.println(F("2.Please insert the SD card!"));
     // while (1)
-    //   ; 
+    //   ;
   }
   servo0.attach(0, MIN_PULSES[0], MAX_PULSES[0], zeros[0], ks[0], -90);
   servo1.attach(1, MIN_PULSES[1], MAX_PULSES[1], zeros[1], ks[1], -90);
@@ -412,7 +412,8 @@ void loop() {
       }
     case 8:
       {
-        toPositions(0, -90, -90, 0, 90  , true);
+        toPositions(0, -90, -90, 0, 90, true);
+        myDFPlayer.play(10);
         break;
       }
     case 9:
@@ -424,6 +425,10 @@ void loop() {
         toPositions(20, -90, 0, 45, 0, true);
         toPositions(0, -90, 0, 45, 0, true);
         toPositions(0, -90, 0, 90, 0, true);
+        break;
+      }
+      case 10: {
+        myDFPlayer.play(10);
         break;
       }
     default:
