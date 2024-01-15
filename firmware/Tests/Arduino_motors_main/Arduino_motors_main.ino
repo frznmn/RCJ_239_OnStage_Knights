@@ -538,6 +538,7 @@ void setup() {
   pinMode(PINENCODERA, 0);
   attachInterrupt(INTERRUPTB, countEncoderB, RISING);
   pinMode(PINENCODERB, 0);
+  int summOper = 0;
   //for(;;);
   // delay(2500);
   // writeBuff3(1);
@@ -572,10 +573,12 @@ void setup() {
   }
   for (int i = 1; i < nUdarov; i++) {
     delay(500);
-    if (operation == 2) {
+    if ((operation == 2 and summOper < 2) or summOper <= -2) {
       operation = attack();
+      summOper ++;
     } else {
       operation = defense();
+      summOper --;
     }
   }
   if (rnum == 0) {  
