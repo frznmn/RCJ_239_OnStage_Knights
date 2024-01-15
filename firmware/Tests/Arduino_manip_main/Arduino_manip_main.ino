@@ -250,7 +250,7 @@ void blokVpered(int space = 95, int nWrite = 5, uint32_t time = 5000) {
     gyrox = abs(gyrox);
     gyroy = abs(gyroy);
     gyroz = abs(gyroz);
-    if (((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < udarMax) and millis() - myTimer > 500) or millis() - myTimer > time) {
+    if (((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) > udarMax) and millis() - myTimer > 500) or millis() - myTimer > time) {
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
@@ -289,7 +289,7 @@ void blokVlevo(int space = 95, int nWrite = 5, uint32_t time = 5000) {
     gyrox = abs(gyrox);
     gyroy = abs(gyroy);
     gyroz = abs(gyroz);
-    if (((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < udarMax) and millis() - myTimer > 500) or millis() - myTimer > time) {
+    if (((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) > udarMax) and millis() - myTimer > 500) or millis() - myTimer > time) {
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
@@ -328,7 +328,7 @@ void blokVpravo(int space = 95, int nWrite = 5, uint32_t time = 5000) {
     gyrox = abs(gyrox);
     gyroy = abs(gyroy);
     gyroz = abs(gyroz);
-    if (((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) < udarMax) and millis() - myTimer > 500) or millis() - myTimer > time) {
+    if (((abs(gyrox + gyroy + gyroz - gyroold) > gyromax or analogRead(0) > udarMax) and millis() - myTimer > 500) or millis() - myTimer > time) {
       break;
     }
     gyroold = gyrox + gyroy + gyroz;
@@ -343,7 +343,7 @@ void blokVpravo(int space = 95, int nWrite = 5, uint32_t time = 5000) {
   } else {
     writeBuff3(1, nWrite, space);
     myDFPlayer.play(random(7, 10));
-  }
+  } 
 }
 
 void setup() {
@@ -351,6 +351,7 @@ void setup() {
   Wire.begin();
   Serial2.begin(9600);
   Serial3.begin(9600);
+  //for(;;) Serial.println(analogRead(0));
   if (!imu.init()) {
     Serial.println("Failed to detect and initialize imu!");
     // while (1)

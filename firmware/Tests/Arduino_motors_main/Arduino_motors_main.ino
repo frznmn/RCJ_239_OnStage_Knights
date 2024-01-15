@@ -538,6 +538,7 @@ void setup() {
   pinMode(PINENCODERA, 0);
   attachInterrupt(INTERRUPTB, countEncoderB, RISING);
   pinMode(PINENCODERB, 0);
+  //for(;;);
   // delay(2500);
   // writeBuff3(1);
   // delay(2000);
